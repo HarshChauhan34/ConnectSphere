@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext();
+const PROD_SOCKET_FALLBACK = "https://connectsphere-8g4j.onrender.com";
+const DEV_SOCKET_FALLBACK = "http://localhost:5000";
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
@@ -13,7 +15,10 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (!user?._id) return;
 
-    const newSocket = io(import.meta.env.VITE_SOCKET_URL || "http://localhost:5000");
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (import.meta.env.PROD ? PROD_SOCKET_FALLBACK : DEV_SOCKET_FALLBACK);
+    const newSocket = io(socketUrl);
 
     newSocket.emit("addUser", user._id);
 
