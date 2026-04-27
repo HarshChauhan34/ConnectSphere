@@ -26,7 +26,7 @@ const allowedOrigins = (process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter(Boolean);
 const allowedOriginPatterns = [
-  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i,
+  /^https:\/\/connect-sphere-[a-z0-9-]+\.vercel\.app$/i,
   /^http:\/\/localhost:\d+$/i,
   /^https:\/\/localhost:\d+$/i,
 ];
@@ -45,8 +45,6 @@ const corsOptions = {
     callback(new Error("Not allowed by CORS"));
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 export const io = new Server(server, {
@@ -76,7 +74,6 @@ io.on("connection", (socket) => {
 });
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
 
 app.use(
   helmet({

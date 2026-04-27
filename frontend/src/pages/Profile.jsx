@@ -135,16 +135,23 @@ function Profile() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl backdrop-blur-xl">
-        <div className="h-44 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+        <div className="h-44 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
         <div className="px-6 pb-6">
-          <div className="-mt-16 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <Avatar user={profile} size={120} />
+          <div className="-mt-14 flex flex-col items-center gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
+            <div className="rounded-full bg-black p-[3px] shadow-xl shadow-black/35 ring-2 ring-white/85">
+              <div className="sm:hidden">
+                <Avatar user={profile} size={96} />
+              </div>
+              <div className="hidden sm:block">
+                <Avatar user={profile} size={120} />
+              </div>
+            </div>
 
             {!isOwnProfile && (
               <button
                 onClick={handleFollow}
-                className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 font-semibold ${
+                className={`flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 font-semibold sm:w-auto ${
                   isFollowing
                     ? "bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white"
                     : "bg-indigo-500 text-white hover:bg-indigo-600"

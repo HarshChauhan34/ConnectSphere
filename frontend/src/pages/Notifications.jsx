@@ -23,6 +23,10 @@ function Notifications() {
       const res = await getNotifications();
       setNotifications(res.data.notifications);
       await markNotificationsAsRead();
+      setLiveNotifications([]);
+      setNotifications((prev) =>
+        prev.map((notification) => ({ ...notification, isRead: true }))
+      );
     } catch (error) {
       toast.error("Failed to load notifications");
     } finally {
