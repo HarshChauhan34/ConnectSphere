@@ -35,6 +35,16 @@ const userSchema = new mongoose.Schema(
       select: false, // 🔐 hidden by default
     },
 
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
+
     avatar: {
       type: String,
       default:

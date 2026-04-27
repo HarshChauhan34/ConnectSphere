@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Camera, HomeIcon, Loader2, PenLine } from "lucide-react";
 import CreatePost from "../components/CreatePost";
 import PostCard from "../components/PostCard";
 import { getFeedPosts } from "../services/postService";
@@ -8,9 +9,8 @@ function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await getFeedPosts();
       setPosts(res.data.posts);
     } catch (error) {
@@ -18,11 +18,15 @@ function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchFeed();
-  }, []);
+    const timer = setTimeout(() => {
+      void fetchFeed();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchFeed]);
 
   const handlePostCreated = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -39,30 +43,72 @@ function Home() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <CreatePost onPostCreated={handlePostCreated} />
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
+        {/* Instagram Style Header */}
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+          <div className="flex h-14 items-center justify-between px-4">
+            <div className="flex items-center gap-3">
+              <HomeIcon size={24} />
+              <h1 className="text-xl font-bold tracking-tight">Home</h1>
+            </div>
 
-      {loading ? (
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center text-slate-300">
-          Loading posts...
+            <button
+              onClick={() =>
+                window.scrollTo({
+                  top: 0,
+                  behavior: "smooth",
+                })
+              }
+              className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-neutral-900 active:scale-95"
+              title="Create post"
+            >
+              <Camera size={22} />
+            </button>
+          </div>
         </div>
-      ) : posts.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center">
-          <h2 className="text-xl font-bold">No posts yet</h2>
-          <p className="mt-2 text-slate-400">
-            Create your first post or follow users to see their posts.
-          </p>
+
+        {/* Create Post */}
+        <div className="border-b border-neutral-800">
+          <CreatePost onPostCreated={handlePostCreated} />
         </div>
-      ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post._id}
-            post={post}
-            onPostDeleted={handlePostDeleted}
-            onPostUpdated={handlePostUpdated}
-          />
-        ))
-      )}
+
+        {/* Feed */}
+        {loading ? (
+          <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+              <Loader2 size={22} className="animate-spin" />
+              Loading posts...
+            </div>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+            <div>
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                <PenLine size={34} className="text-neutral-400" />
+              </div>
+
+              <h2 className="text-xl font-bold text-white">No posts yet</h2>
+
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
+                Create your first post or follow users to see their posts.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {posts.map((post) => (
+              <div key={post._id} className="border-b border-neutral-800">
+                <PostCard
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

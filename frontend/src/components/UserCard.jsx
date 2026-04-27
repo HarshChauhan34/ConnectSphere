@@ -2,11 +2,13 @@ import { Link } from "react-router-dom";
 import { UserPlus, UserMinus } from "lucide-react";
 import toast from "react-hot-toast";
 import { followUnfollowUser } from "../services/userService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import Avatar from "./Avatar";
 
 function UserCard({ person, onFollowChange }) {
   const { user, setUser } = useAuth();
+
+  const isOwnProfile = person._id === user?._id;
 
   const isFollowing = person.followers?.some((follower) => {
     const id = follower._id || follower;
@@ -21,7 +23,10 @@ function UserCard({ person, onFollowChange }) {
         ...user,
         following: res.data.isFollowing
           ? [...(user.following || []), person._id]
-          : (user.following || []).filter((id) => id !== person._id),
+          : (user.following || []).filter((id) => {
+              const resolvedId = id._id || id;
+              return resolvedId !== person._id;
+            }),
       };
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -36,50 +41,44 @@ function UserCard({ person, onFollowChange }) {
   };
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/10 p-5 shadow-xl backdrop-blur-xl">
-      <div className="flex items-center gap-4">
-        <Link to={`/profile/${person._id}`}>
-          <Avatar user={person} size={64} />
+    <div className="bg-black text-white">
+      <div className="flex items-center gap-3">
+        <Link to={`/profile/${person._id}`} className="shrink-0">
+          <div className="rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
+            <div className="rounded-full bg-black p-[2px]">
+              <Avatar user={person} size={48} />
+            </div>
+          </div>
         </Link>
 
-        <div className="min-w-0 flex-1">
-          <Link to={`/profile/${person._id}`}>
-            <h3 className="truncate font-bold hover:text-indigo-300">
-              {person.name}
-            </h3>
-          </Link>
-
-          <p className="truncate text-sm text-slate-400">@{person.username}</p>
-
-          <p className="mt-1 line-clamp-1 text-sm text-slate-300">
-            {person.bio || "No bio added yet."}
+        <Link to={`/profile/${person._id}`} className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-white">
+            {person.username}
           </p>
-        </div>
+
+          <p className="truncate text-sm text-neutral-400">{person.name}</p>
+
+          {person.bio && (
+            <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">
+              {person.bio}
+            </p>
+          )}
+        </Link>
+
+        {!isOwnProfile && (
+          <button
+            onClick={handleFollow}
+            className={`inline-flex min-w-[92px] items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-semibold transition active:scale-95 ${
+              isFollowing
+                ? "bg-neutral-800 text-white hover:bg-neutral-700"
+                : "bg-[#0095f6] text-white hover:bg-[#1877f2]"
+            }`}
+          >
+            {isFollowing ? <UserMinus size={15} /> : <UserPlus size={15} />}
+            {isFollowing ? "Following" : "Follow"}
+          </button>
+        )}
       </div>
-
-      <div className="mt-4 grid grid-cols-2 gap-3 text-center text-sm">
-        <div className="rounded-2xl bg-slate-950/60 p-3">
-          <p className="font-bold">{person.followers?.length || 0}</p>
-          <p className="text-xs text-slate-400">Followers</p>
-        </div>
-
-        <div className="rounded-2xl bg-slate-950/60 p-3">
-          <p className="font-bold">{person.following?.length || 0}</p>
-          <p className="text-xs text-slate-400">Following</p>
-        </div>
-      </div>
-
-      <button
-        onClick={handleFollow}
-        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition ${
-          isFollowing
-            ? "bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white"
-            : "bg-indigo-500 text-white hover:bg-indigo-600"
-        }`}
-      >
-        {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
-        {isFollowing ? "Unfollow" : "Follow"}
-      </button>
     </div>
   );
 }

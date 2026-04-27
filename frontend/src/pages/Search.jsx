@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Search as SearchIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Search as SearchIcon, Loader2, UserRoundSearch } from "lucide-react";
 import toast from "react-hot-toast";
 import UserCard from "../components/UserCard";
 import { getAllUsers } from "../services/userService";
@@ -9,7 +9,7 @@ function Search() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getAllUsers(search);
@@ -19,49 +19,81 @@ function Search() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchUsers();
+      void fetchUsers();
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [fetchUsers]);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
-        <h1 className="flex items-center gap-3 text-3xl font-bold">
-          <SearchIcon className="text-indigo-300" />
-          Search Users
-        </h1>
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
+        {/* Header */}
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+          <div className="flex h-14 items-center gap-3 px-4">
+            <SearchIcon size={24} />
+            <h1 className="text-xl font-bold tracking-tight">Search</h1>
+          </div>
 
-        <input
-          type="text"
-          placeholder="Search by name or username..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          autoFocus
-          className="mt-5 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 outline-none focus:border-indigo-400"
-        />
+          {/* Search Bar */}
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <SearchIcon
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500"
+              />
+
+              <input
+                type="text"
+                placeholder="Search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2.5 pl-11 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-neutral-600"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+              <Loader2 size={22} className="animate-spin" />
+              Searching...
+            </div>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+            <div>
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                <UserRoundSearch size={34} className="text-neutral-400" />
+              </div>
+
+              <h2 className="text-xl font-bold text-white">No users found</h2>
+
+              <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
+                Try searching by name or username.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            {users.map((person) => (
+              <div
+                key={person._id}
+                className="border-b border-neutral-800 p-3 transition hover:bg-neutral-950"
+              >
+                <UserCard person={person} />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      {loading ? (
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center">
-          Searching...
-        </div>
-      ) : users.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center text-slate-400">
-          No users found.
-        </div>
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {users.map((person) => (
-            <UserCard key={person._id} person={person} />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

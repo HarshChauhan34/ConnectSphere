@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { UserPlus } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "../context/useAuth";
 
 function Register() {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ function Register() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -40,69 +41,89 @@ function Register() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950 px-4">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500 shadow-lg">
-            <UserPlus />
-          </div>
-          <h1 className="text-3xl font-bold">Create Account</h1>
-          <p className="mt-2 text-sm text-slate-300">
-            Join the social media platform
+    <div className="flex min-h-screen items-center justify-center bg-black px-4 py-8 text-white">
+      <div className="mx-auto w-full max-w-[350px]">
+        <div className="border border-neutral-800 bg-black px-10 py-10">
+          <h1 className="mb-3 text-center text-3xl font-semibold tracking-tight">
+            ConnectSphere
+          </h1>
+
+          <p className="mb-6 text-center text-sm font-semibold leading-5 text-neutral-400">
+            Sign up to see photos and posts from your friends.
           </p>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <input
+              type="text"
+              name="name"
+              placeholder="Full name"
+              value={form.name}
+              onChange={handleChange}
+              className="w-full rounded-sm border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+            />
+
+            <input
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={form.username}
+              onChange={handleChange}
+              className="w-full rounded-sm border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+            />
+
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              value={form.email}
+              onChange={handleChange}
+              className="w-full rounded-sm border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+            />
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full rounded-sm border border-neutral-700 bg-neutral-950 px-3 py-2.5 pr-10 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            <button
+              disabled={loading}
+              className="mt-3 flex w-full items-center justify-center rounded-lg bg-[#0095f6] py-2 text-sm font-semibold text-white transition hover:bg-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  Creating...
+                </span>
+              ) : (
+                "Sign up"
+              )}
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={form.name}
-            onChange={handleChange}
-            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 outline-none focus:border-purple-400"
-          />
-
-          <input
-            type="text"
-            name="username"
-            placeholder="Username"
-            value={form.username}
-            onChange={handleChange}
-            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 outline-none focus:border-purple-400"
-          />
-
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={form.email}
-            onChange={handleChange}
-            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 outline-none focus:border-purple-400"
-          />
-
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 outline-none focus:border-purple-400"
-          />
-
-          <button
-            disabled={loading}
-            className="w-full rounded-2xl bg-purple-500 py-3 font-semibold text-white transition hover:bg-purple-600 disabled:opacity-60"
+        <div className="mt-3 border border-neutral-800 bg-black px-6 py-5 text-center text-sm">
+          Have an account?{" "}
+          <Link
+            to="/login"
+            className="font-semibold text-[#0095f6] hover:text-white"
           >
-            {loading ? "Creating..." : "Register"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-300">
-          Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-purple-300">
-            Login
+            Log in
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

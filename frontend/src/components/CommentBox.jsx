@@ -1,36 +1,39 @@
-import { useEffect, useState } from "react";
-import { Send, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   addComment,
   deleteComment,
   getPostComments,
 } from "../services/commentService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import Avatar from "./Avatar";
 
-function CommentBox({ post, onClose, onCommentCountChange }) {
+function CommentBox({ post, onCommentCountChange }) {
   const { user } = useAuth();
 
   const [comments, setComments] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await getPostComments(post._id);
       setComments(res.data.comments);
-    } catch (error) {
+    } catch {
       toast.error("Failed to load comments");
     } finally {
       setLoading(false);
     }
-  };
+  }, [post._id]);
 
   useEffect(() => {
-    fetchComments();
-  }, [post._id]);
+    const timer = setTimeout(() => {
+      void fetchComments();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchComments]);
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -62,69 +65,81 @@ function CommentBox({ post, onClose, onCommentCountChange }) {
   };
 
   return (
-    <div className="border-t border-white/10 bg-slate-950/50 p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold">Comments</h3>
-        <button
-          onClick={onClose}
-          className="rounded-full p-2 text-slate-300 hover:bg-white/10"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <form onSubmit={handleAddComment} className="mb-5 flex gap-3">
-        <Avatar user={user} size={40} />
+    <div className="border-t border-neutral-800 bg-black">
+      {/* Add Comment */}
+      <form
+        onSubmit={handleAddComment}
+        className="flex items-center gap-3 border-b border-neutral-800 px-4 py-3"
+      >
+        <div className="shrink-0">
+          <Avatar user={user} size={34} />
+        </div>
 
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Write a comment..."
-          className="flex-1 rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm outline-none focus:border-indigo-400"
+          placeholder="Add a comment..."
+          className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-neutral-500"
         />
 
-        <button className="rounded-2xl bg-indigo-500 px-4 hover:bg-indigo-600">
-          <Send size={18} />
+        <button
+          disabled={!text.trim()}
+          className={`text-sm font-semibold transition ${
+            text.trim()
+              ? "text-[#0095f6] hover:text-white"
+              : "cursor-not-allowed text-[#0095f6]/40"
+          }`}
+        >
+          Post
         </button>
       </form>
 
-      {loading ? (
-        <p className="text-sm text-slate-400">Loading comments...</p>
-      ) : comments.length === 0 ? (
-        <p className="text-sm text-slate-400">No comments yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {comments.map((comment) => (
-            <div key={comment._id} className="flex gap-3">
-              <Avatar user={comment.user} size={36} />
-
-              <div className="flex-1 rounded-2xl bg-white/10 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">
-                      {comment.user?.name}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      @{comment.user?.username}
-                    </p>
-                  </div>
-
-                  {comment.user?._id === user?._id && (
-                    <button
-                      onClick={() => handleDeleteComment(comment._id)}
-                      className="text-red-300 hover:text-red-400"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+      {/* Comments */}
+      <div className="px-4 py-3">
+        {loading ? (
+          <div className="flex items-center gap-2 py-3 text-sm text-neutral-400">
+            <Loader2 size={16} className="animate-spin" />
+            Loading comments...
+          </div>
+        ) : comments.length === 0 ? (
+          <p className="py-3 text-center text-sm text-neutral-500">
+            No comments yet.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div key={comment._id} className="flex gap-3">
+                <div className="shrink-0">
+                  <Avatar user={comment.user} size={34} />
                 </div>
 
-                <p className="mt-2 text-sm text-slate-200">{comment.text}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm leading-5 text-neutral-200">
+                    <span className="mr-1 font-semibold text-white">
+                      {comment.user?.username || comment.user?.name}
+                    </span>
+                    {comment.text}
+                  </p>
+
+                  <p className="mt-1 text-xs text-neutral-500">
+                    {comment.user?.name}
+                  </p>
+                </div>
+
+                {comment.user?._id === user?._id && (
+                  <button
+                    onClick={() => handleDeleteComment(comment._id)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-900 hover:text-red-500"
+                    title="Delete comment"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

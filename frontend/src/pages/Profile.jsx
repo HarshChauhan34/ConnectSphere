@@ -1,15 +1,29 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Camera, Save, UserPlus, UserMinus } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import { followUnfollowUser, getUserProfile, updateProfile } from "../services/userService";
+import {
+  Camera,
+  Save,
+  UserPlus,
+  UserMinus,
+  Loader2,
+  ImagePlus,
+  Edit3,
+  Grid3X3,
+} from "lucide-react";
+import { useAuth } from "../context/useAuth";
+import {
+  followUnfollowUser,
+  getUserProfile,
+  updateProfile,
+} from "../services/userService";
 import { getUserPosts } from "../services/postService";
 import PostCard from "../components/PostCard";
 import Avatar from "../components/Avatar";
 
 function Profile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, setUser } = useAuth();
 
   const [profile, setProfile] = useState(null);
@@ -31,7 +45,7 @@ function Profile() {
     return followerId === user?._id;
   });
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const [profileRes, postsRes] = await Promise.all([
         getUserProfile(id),
@@ -49,11 +63,15 @@ function Profile() {
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load profile");
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [id]);
+    const timer = setTimeout(() => {
+      void fetchProfile();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchProfile]);
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
@@ -126,158 +144,227 @@ function Profile() {
 
   if (!profile) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center">
-        Loading profile...
+      <div className="min-h-screen bg-black text-white">
+        <div className="mx-auto flex min-h-screen max-w-[935px] items-center justify-center border-x border-neutral-800">
+          <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+            <Loader2 size={22} className="animate-spin" />
+            Loading profile...
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-2xl backdrop-blur-xl">
-        <div className="h-44 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto min-h-screen max-w-[935px] border-x border-neutral-800 bg-black pb-24">
+        {/* Header */}
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 px-4 py-3 backdrop-blur-xl">
+          <h1 className="text-xl font-bold">{profile.username}</h1>
+        </div>
 
-        <div className="px-6 pb-6">
-          <div className="-mt-14 flex flex-col items-center gap-4 sm:-mt-16 sm:flex-row sm:items-end sm:justify-between">
-            <div className="rounded-full bg-black p-[3px] shadow-xl shadow-black/35 ring-2 ring-white/85">
-              <div className="sm:hidden">
-                <Avatar user={profile} size={96} />
-              </div>
-              <div className="hidden sm:block">
-                <Avatar user={profile} size={120} />
-              </div>
-            </div>
-
-            {!isOwnProfile && (
-              <button
-                onClick={handleFollow}
-                className={`flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 font-semibold sm:w-auto ${
-                  isFollowing
-                    ? "bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white"
-                    : "bg-indigo-500 text-white hover:bg-indigo-600"
-                }`}
-              >
-                {isFollowing ? <UserMinus size={18} /> : <UserPlus size={18} />}
-                {isFollowing ? "Unfollow" : "Follow"}
-              </button>
-            )}
-          </div>
-
-          {!editMode ? (
-            <div className="mt-5">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">{profile.name}</h1>
-                  <p className="text-slate-400">@{profile.username}</p>
+        {/* Profile Info */}
+        <section className="border-b border-neutral-800 px-4 py-6 sm:px-8">
+          <div className="flex gap-6 sm:gap-10">
+            <div className="shrink-0">
+              <div className="relative rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[3px]">
+                <div className="rounded-full bg-black p-[3px]">
+                  {preview ? (
+                    <img
+                      src={preview}
+                      alt="Avatar Preview"
+                      className="h-24 w-24 rounded-full object-cover sm:h-36 sm:w-36"
+                    />
+                  ) : (
+                    <>
+                      <div className="sm:hidden">
+                        <Avatar user={profile} size={96} />
+                      </div>
+                      <div className="hidden sm:block">
+                        <Avatar user={profile} size={144} />
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {isOwnProfile && (
-                  <button
-                    onClick={() => setEditMode(true)}
-                    className="rounded-2xl bg-white/10 px-5 py-2.5 text-sm font-semibold hover:bg-white/20"
-                  >
-                    Edit Profile
-                  </button>
+                {editMode && (
+                  <label className="absolute bottom-1 right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#0095f6] text-white shadow-lg transition hover:bg-[#1877f2]">
+                    <Camera size={18} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
                 )}
               </div>
-
-              <p className="mt-4 text-slate-200">
-                {profile.bio || "No bio added yet."}
-              </p>
-
-              <div className="mt-5 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-2xl bg-slate-950/60 p-4">
-                  <p className="text-xl font-bold">{posts.length}</p>
-                  <p className="text-xs text-slate-400">Posts</p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-950/60 p-4">
-                  <p className="text-xl font-bold">
-                    {profile.followers?.length || 0}
-                  </p>
-                  <p className="text-xs text-slate-400">Followers</p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-950/60 p-4">
-                  <p className="text-xl font-bold">
-                    {profile.following?.length || 0}
-                  </p>
-                  <p className="text-xs text-slate-400">Following</p>
-                </div>
-              </div>
             </div>
-          ) : (
-            <form onSubmit={handleUpdateProfile} className="mt-6 space-y-4">
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-                <Camera size={18} />
-                Change Avatar
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={handleAvatarChange}
-                />
-              </label>
 
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Name"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 outline-none focus:border-indigo-400"
-              />
+            <div className="min-w-0 flex-1">
+              {!editMode ? (
+                <>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <h2 className="truncate text-xl font-normal text-white sm:text-2xl">
+                      {profile.username}
+                    </h2>
 
-              <input
-                value={form.username}
-                onChange={(e) =>
-                  setForm({ ...form, username: e.target.value })
-                }
-                placeholder="Username"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 outline-none focus:border-indigo-400"
-              />
+                    {isOwnProfile ? (
+                      <button
+                        onClick={() => setEditMode(true)}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-neutral-800 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-neutral-700"
+                      >
+                        <Edit3 size={15} />
+                        Edit Profile
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFollow}
+                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
+                          isFollowing
+                            ? "bg-neutral-800 text-white hover:bg-neutral-700"
+                            : "bg-[#0095f6] text-white hover:bg-[#1877f2]"
+                        }`}
+                      >
+                        {isFollowing ? (
+                          <UserMinus size={15} />
+                        ) : (
+                          <UserPlus size={15} />
+                        )}
+                        {isFollowing ? "Following" : "Follow"}
+                      </button>
+                    )}
+                  </div>
 
-              <textarea
-                value={form.bio}
-                onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                placeholder="Bio"
-                rows="3"
-                className="w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 outline-none focus:border-indigo-400"
-              />
+                  <div className="mt-5 flex gap-6 text-sm sm:gap-10">
+                    <p>
+                      <span className="font-bold">{posts.length}</span> posts
+                    </p>
 
-              <div className="flex gap-3">
-                <button className="flex items-center gap-2 rounded-2xl bg-indigo-500 px-5 py-2.5 font-semibold hover:bg-indigo-600">
-                  <Save size={18} />
-                  Save
-                </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/profile/${profile._id}/followers`)
+                      }
+                    >
+                      <span className="font-bold">
+                        {profile.followers?.length || 0}
+                      </span>{" "}
+                      followers
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setEditMode(false)}
-                  className="rounded-2xl bg-white/10 px-5 py-2.5 font-semibold hover:bg-white/20"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(`/profile/${profile._id}/following`)
+                      }
+                    >
+                      <span className="font-bold">
+                        {profile.following?.length || 0}
+                      </span>{" "}
+                      following
+                    </button>
+                  </div>
+
+                  <div className="mt-5 text-sm">
+                    <h3 className="font-bold text-white">{profile.name}</h3>
+                    <p className="mt-1 whitespace-pre-line text-neutral-200">
+                      {profile.bio || "No bio added yet."}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={handleUpdateProfile} className="space-y-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-semibold transition hover:bg-neutral-700">
+                    <ImagePlus size={17} />
+                    Change Avatar
+                    <input
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={handleAvatarChange}
+                    />
+                  </label>
+
+                  <input
+                    value={form.name}
+                    onChange={(e) =>
+                      setForm({ ...form, name: e.target.value })
+                    }
+                    placeholder="Name"
+                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+                  />
+
+                  <input
+                    value={form.username}
+                    onChange={(e) =>
+                      setForm({ ...form, username: e.target.value })
+                    }
+                    placeholder="Username"
+                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+                  />
+
+                  <textarea
+                    value={form.bio}
+                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
+                    placeholder="Bio"
+                    rows="3"
+                    className="w-full resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
+                  />
+
+                  <div className="flex gap-3">
+                    <button className="inline-flex items-center gap-2 rounded-lg bg-[#0095f6] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1877f2]">
+                      <Save size={17} />
+                      Save
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditMode(false);
+                        setAvatarFile(null);
+                        setPreview("");
+                      }}
+                      className="rounded-lg bg-neutral-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Posts Title */}
+        <div className="flex items-center justify-center gap-2 border-b border-neutral-800 py-3 text-xs font-bold uppercase tracking-widest text-white">
+          <Grid3X3 size={14} />
+          Posts
         </div>
-      </div>
 
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold">Posts</h2>
-
+        {/* Posts */}
         {posts.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center text-slate-400">
-            No posts yet.
+          <div className="flex min-h-[300px] items-center justify-center px-6 text-center">
+            <div>
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                <Camera size={34} className="text-neutral-400" />
+              </div>
+
+              <h2 className="text-xl font-bold text-white">No posts yet</h2>
+            </div>
           </div>
         ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onPostDeleted={handlePostDeleted}
-              onPostUpdated={handlePostUpdated}
-            />
-          ))
+          <div className="mx-auto max-w-[630px]">
+            {posts.map((post) => (
+              <div key={post._id} className="border-b border-neutral-800">
+                <PostCard
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

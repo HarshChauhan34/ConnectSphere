@@ -1,43 +1,88 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Bell, Compass, Home, LogOut, Search, User } from "lucide-react";
+import { Bell, Compass, Home, LogOut, MessageCircle, Search } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "../context/AuthContext";
-import { useSocket } from "../context/SocketContext";
+import { useAuth } from "../context/useAuth";
+import { useSocket } from "../context/useSocket";
 import Avatar from "./Avatar";
 import { getNotifications } from "../services/notificationService";
+import { getUnreadMessagesCount } from "../services/messageService";
+
+const CountBadge = ({ count }) => {
+  if (count <= 0) return null;
+
+  return (
+    <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-black">
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+};
 
 function Navbar() {
   const { user, logout } = useAuth();
-  const { liveNotifications } = useSocket();
+  const { liveNotifications, subscribeToMessages } = useSocket();
   const navigate = useNavigate();
   const location = useLocation();
-  const [unreadServerNotifications, setUnreadServerNotifications] = useState([]);
+
+  const [unreadServerNotifications, setUnreadServerNotifications] = useState(
+    []
+  );
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const fetchUnreadNotifications = useCallback(async () => {
+    try {
+      const res = await getNotifications();
+      const unread = (res.data.notifications || []).filter(
+        (notification) => !notification.isRead
+      );
+      setUnreadServerNotifications(unread);
+    } catch {
+      setUnreadServerNotifications([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user?._id || location.pathname.startsWith("/notifications")) return;
+
+    const timer = setTimeout(() => {
+      void fetchUnreadNotifications();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchUnreadNotifications, location.pathname, user?._id]);
+
+  const fetchUnreadMessages = useCallback(async () => {
+    try {
+      const res = await getUnreadMessagesCount();
+      setUnreadMessages(res.data.unreadCount || 0);
+    } catch {
+      setUnreadMessages(0);
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?._id) return;
-    if (location.pathname.startsWith("/notifications")) {
-      setUnreadServerNotifications([]);
-      return;
-    }
 
-    const fetchUnreadNotifications = async () => {
-      try {
-        const res = await getNotifications();
-        const unread = (res.data.notifications || []).filter(
-          (notification) => !notification.isRead
-        );
-        setUnreadServerNotifications(unread);
-      } catch {
-        // Fail silently to avoid noisy toasts from a global nav request.
-        setUnreadServerNotifications([]);
+    const timer = setTimeout(() => {
+      void fetchUnreadMessages();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchUnreadMessages, location.pathname, user?._id]);
+
+  useEffect(() => {
+    if (!user?._id) return undefined;
+
+    return subscribeToMessages(() => {
+      if (!location.pathname.startsWith("/messages")) {
+        setUnreadMessages((prev) => prev + 1);
       }
-    };
-
-    fetchUnreadNotifications();
-  }, [location.pathname, user?._id]);
+    });
+  }, [location.pathname, subscribeToMessages, user?._id]);
 
   const unreadCount = useMemo(() => {
+    if (location.pathname.startsWith("/notifications")) return 0;
+
     const unreadMap = new Map();
 
     unreadServerNotifications.forEach((notification) => {
@@ -53,121 +98,193 @@ function Navbar() {
     });
 
     return unreadMap.size;
-  }, [liveNotifications, unreadServerNotifications]);
+  }, [liveNotifications, location.pathname, unreadServerNotifications]);
 
   const handleLogout = () => {
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
+    if (!confirmLogout) return;
+
     logout();
     toast.success("Logout successful");
     navigate("/login");
   };
 
   const navClass = ({ isActive }) =>
-    `relative flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition ${
-      isActive
-        ? "bg-indigo-500 text-white shadow-lg"
-        : "text-slate-300 hover:bg-white/10 hover:text-white"
+    `group relative flex items-center gap-4 rounded-lg px-3 py-3 text-base transition hover:bg-neutral-900 ${
+      isActive ? "font-bold text-white" : "font-normal text-neutral-200"
     }`;
 
   const mobileNavClass = ({ isActive }) =>
-    `relative flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-2 text-xs font-medium transition ${
-      isActive
-        ? "bg-indigo-500 text-white shadow-md"
-        : "text-slate-300 hover:bg-white/10 hover:text-white"
+    `relative flex h-12 items-center justify-center rounded-xl transition ${
+      isActive ? "text-white" : "text-neutral-300"
     }`;
 
-  const NotificationBadge = () =>
-    unreadCount > 0 ? (
-      <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-        {unreadCount > 9 ? "9+" : unreadCount}
-      </span>
-    ) : null;
-
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-500 to-purple-500 font-bold shadow-lg">
-            CS
-          </div>
-          <div>
-            <h1 className="text-lg font-bold">ConnectSphere</h1>
-            <p className="text-xs text-slate-400">Social Platform</p>
-          </div>
+    <>
+      {/* Desktop Instagram Sidebar */}
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[245px] border-r border-neutral-800 bg-black px-3 py-6 text-white lg:block">
+        <Link to="/" className="mb-9 block px-3">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            ConnectSphere
+          </h1>
         </Link>
 
-        <nav className="hidden items-center gap-2 md:flex">
+        <nav className="space-y-1">
           <NavLink to="/" className={navClass}>
-            <Home size={18} />
-            Feed
+            <Home size={26} />
+            <span>Home</span>
+          </NavLink>
+
+          <NavLink to="/search" className={navClass}>
+            <Search size={26} />
+            <span>Search</span>
           </NavLink>
 
           <NavLink to="/explore" className={navClass}>
-            <Compass size={18} />
-            Explore
-          </NavLink>
-
-          <NavLink to="/notifications" className={navClass}>
-            <Bell size={18} />
-            Notifications
-            <NotificationBadge />
-          </NavLink>
-
-          {/* <NavLink to={`/profile/${user?._id}`} className={navClass}>
-            <User size={18} />
-            Profile
-          </NavLink> */}
-        </nav>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/search")}
-            className="hidden items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white md:flex"
-          >
-            <Search size={17} />
-            <span className="ml-2">Search</span>
-          </button>
-
-          <NavLink to={`/profile/${user?._id}`} className={navClass}>
-            <Avatar user={user} size={40} />
-          </NavLink>
-
-          <button
-            onClick={handleLogout}
-            className="rounded-2xl bg-red-500/20 p-3 text-red-300 transition hover:bg-red-500 hover:text-white"
-            title="Logout"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
-      </div>
-
-
-      {/* mobile menu */}
-      <nav className="border-t border-white/10 px-4 py-3 md:hidden">
-        <div className="grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 backdrop-blur-xl">
-          <NavLink to="/" className={mobileNavClass}>
-            <Home size={18} />
-            <span>Feed</span>
-          </NavLink>
-
-          <NavLink to="/explore" className={mobileNavClass}>
-            <Compass size={18} />
+            <Compass size={26} />
             <span>Explore</span>
           </NavLink>
 
-          <NavLink to="/notifications" className={mobileNavClass}>
-            <NotificationBadge />
-            <Bell size={18} />
+          <NavLink to="/notifications" className={navClass}>
+            <div className="relative">
+              <Bell size={26} />
+              <CountBadge count={unreadCount} />
+            </div>
             <span>Notifications</span>
           </NavLink>
 
-          {/* <NavLink to={`/profile/${user?._id}`} className={mobileNavClass}>
-            <User size={18} />
+          <NavLink to="/messages" className={navClass}>
+            <div className="relative">
+              <MessageCircle size={26} />
+              <CountBadge count={unreadMessages} />
+            </div>
+            <span>Messages</span>
+          </NavLink>
+
+          <NavLink to={`/profile/${user?._id}`} className={navClass}>
+            <Avatar user={user} size={28} />
             <span>Profile</span>
+          </NavLink>
+        </nav>
+
+        <button
+          onClick={handleLogout}
+          className="absolute bottom-6 left-3 right-3 flex items-center gap-4 rounded-lg px-3 py-3 text-base text-neutral-200 transition hover:bg-neutral-900 hover:text-white"
+        >
+          <LogOut size={26} />
+          <span>Logout</span>
+        </button>
+      </aside>
+
+      {/* Tablet Top Bar */}
+      <header className="sticky top-0 z-50 hidden border-b border-neutral-800 bg-black/90 text-white backdrop-blur-xl md:block lg:hidden">
+        <div className="mx-auto flex h-16 max-w-[975px] items-center justify-between px-5">
+          <Link to="/" className="text-xl font-semibold">
+            ConnectSphere
+          </Link>
+
+          <div className="flex items-center gap-5">
+            <NavLink to="/" className={mobileNavClass}>
+              <Home size={24} />
+            </NavLink>
+
+            <NavLink to="/search" className={mobileNavClass}>
+              <Search size={24} />
+            </NavLink>
+
+            <NavLink to="/explore" className={mobileNavClass}>
+              <Compass size={24} />
+            </NavLink>
+
+            <NavLink to="/notifications" className={mobileNavClass}>
+              <div className="relative">
+                <Bell size={24} />
+                <CountBadge count={unreadCount} />
+              </div>
+            </NavLink>
+
+            <NavLink to="/messages" className={mobileNavClass}>
+              <div className="relative">
+                <MessageCircle size={24} />
+                <CountBadge count={unreadMessages} />
+              </div>
+            </NavLink>
+
+            <NavLink to={`/profile/${user?._id}`} className={mobileNavClass}>
+              <Avatar user={user} size={28} />
+            </NavLink>
+
+            <button
+              onClick={handleLogout}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-300 transition hover:bg-neutral-900 hover:text-white"
+              title="Logout"
+            >
+              <LogOut size={22} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Top Header */}
+      <header className="sticky top-0 z-50 border-b border-neutral-800 bg-black/90 text-white backdrop-blur-xl md:hidden">
+        <div className="flex h-14 items-center justify-between px-4">
+          <Link to="/" className="text-xl font-semibold">
+            ConnectSphere
+          </Link>
+
+          <div className="flex items-center gap-4">
+            <NavLink to="/notifications" className="relative">
+              <Bell size={24} />
+              <CountBadge count={unreadCount} />
+            </NavLink>
+
+            {/* <NavLink to="/messages" className="relative">
+              <MessageCircle size={24} />
+              <CountBadge count={unreadMessages} />
+            </NavLink> */}
+
+            <button onClick={handleLogout} title="Logout">
+              <LogOut size={22} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+        {/* Mobile Bottom Menu */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-800 bg-black/95 text-white backdrop-blur-xl md:hidden">
+        <div className="grid h-14 grid-cols-5">
+          <NavLink to="/" className={mobileNavClass}>
+            <Home size={25} />
+          </NavLink>
+
+          <NavLink to="/search" className={mobileNavClass}>
+            <Search size={25} />
+          </NavLink>
+
+          <NavLink to="/explore" className={mobileNavClass}>
+            <Compass size={25} />
+          </NavLink>
+
+          {/* <NavLink to="/notifications" className={mobileNavClass}>
+            <div className="relative">
+              <Bell size={25} />
+              <CountBadge count={unreadCount} />
+            </div>
           </NavLink> */}
+
+          <NavLink to="/messages" className={mobileNavClass}>
+            <div className="relative">
+              <MessageCircle size={24} />
+              <CountBadge count={unreadMessages} />
+            </div>
+          </NavLink>
+
+          <NavLink to={`/profile/${user?._id}`} className={mobileNavClass}>
+            <Avatar user={user} size={28} />
+          </NavLink>
         </div>
       </nav>
-    </header>
+    </>
   );
 }
 

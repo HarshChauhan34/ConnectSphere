@@ -1,24 +1,29 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
+import { SocketContext } from "./SocketContextValue";
 
-const SocketContext = createContext();
 const PROD_SOCKET_FALLBACK = "https://connectsphere-8g4j.onrender.com";
 const DEV_SOCKET_FALLBACK = "http://localhost:5000";
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
-  const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
+  const messageListenersRef = useRef(new Set());
   const [liveNotifications, setLiveNotifications] = useState([]);
 
   useEffect(() => {
-    if (!user?._id) return;
+    if (!user?._id) {
+      socketRef.current = null;
+      return;
+    }
 
     const socketUrl =
       import.meta.env.VITE_SOCKET_URL ||
       (import.meta.env.PROD ? PROD_SOCKET_FALLBACK : DEV_SOCKET_FALLBACK);
     const newSocket = io(socketUrl);
+    socketRef.current = newSocket;
 
     newSocket.emit("addUser", user._id);
 
@@ -26,25 +31,37 @@ export const SocketProvider = ({ children }) => {
       setLiveNotifications((prev) => [notification, ...prev]);
       toast.success(notification.message);
     });
-
-    setSocket(newSocket);
+    newSocket.on("newMessage", (message) => {
+      messageListenersRef.current.forEach((listener) => {
+        listener(message);
+      });
+    });
 
     return () => {
       newSocket.disconnect();
+      if (socketRef.current === newSocket) {
+        socketRef.current = null;
+      }
     };
   }, [user?._id]);
+
+  const subscribeToMessages = (listener) => {
+    messageListenersRef.current.add(listener);
+
+    return () => {
+      messageListenersRef.current.delete(listener);
+    };
+  };
 
   return (
     <SocketContext.Provider
       value={{
-        socket,
         liveNotifications,
         setLiveNotifications,
+        subscribeToMessages,
       }}
     >
       {children}
     </SocketContext.Provider>
   );
 };
-
-export const useSocket = () => useContext(SocketContext);

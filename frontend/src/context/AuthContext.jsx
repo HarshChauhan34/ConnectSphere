@@ -1,14 +1,14 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getMe, loginUser, registerUser } from "../services/authService";
-
-const AuthContext = createContext();
+import { AuthContext } from "./AuthContextValue";
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    return JSON.parse(localStorage.getItem("user")) || null;
-  });
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")) || null);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    return Boolean(storedUser?.token);
+  });
 
   const register = async (formData) => {
     const res = await registerUser(formData);
@@ -29,9 +29,8 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await getMe();
 
       const oldUser = JSON.parse(localStorage.getItem("user"));
@@ -43,19 +42,23 @@ export const AuthProvider = ({ children }) => {
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
-    } catch (error) {
+    } catch {
       localStorage.removeItem("user");
       setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (user?.token) {
-      refreshUser();
-    }
-  }, []);
+    if (!user?.token) return;
+
+    const timer = setTimeout(() => {
+      void refreshUser();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [refreshUser, user?.token]);
 
   return (
     <AuthContext.Provider
@@ -73,5 +76,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = () => useContext(AuthContext);

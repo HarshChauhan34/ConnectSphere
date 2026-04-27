@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Compass, Search, Users, Newspaper, Loader2 } from "lucide-react";
 import UserCard from "../components/UserCard";
 import PostCard from "../components/PostCard";
 import { getAllUsers } from "../services/userService";
@@ -9,10 +10,10 @@ function Explore() {
   const [users, setUsers] = useState([]);
   const [posts, setPosts] = useState([]);
   const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("users");
+  const [activeTab, setActiveTab] = useState("posts");
   const [loading, setLoading] = useState(true);
 
-  const fetchExploreData = async () => {
+  const fetchExploreData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -28,15 +29,15 @@ function Explore() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchExploreData();
+      void fetchExploreData();
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [fetchExploreData]);
 
   const handleFollowChange = (personId, isFollowing) => {
     setUsers((prev) =>
@@ -64,80 +65,123 @@ function Explore() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-2xl backdrop-blur-xl">
-        <h1 className="text-3xl font-bold">Explore</h1>
-        <p className="mt-2 text-slate-400">
-          Discover new people and latest public posts.
-        </p>
-
-        <input
-          type="text"
-          placeholder="Search users by name or username..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="mt-5 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 outline-none focus:border-indigo-400"
-        />
-
-        <div className="mt-5 flex gap-3">
-          <button
-            onClick={() => setActiveTab("users")}
-            className={`rounded-2xl px-5 py-2 text-sm font-semibold ${
-              activeTab === "users"
-                ? "bg-indigo-500 text-white"
-                : "bg-white/10 text-slate-300"
-            }`}
-          >
-            Users
-          </button>
-
-          <button
-            onClick={() => setActiveTab("posts")}
-            className={`rounded-2xl px-5 py-2 text-sm font-semibold ${
-              activeTab === "posts"
-                ? "bg-indigo-500 text-white"
-                : "bg-white/10 text-slate-300"
-            }`}
-          >
-            Posts
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center">
-          Loading explore...
-        </div>
-      ) : activeTab === "users" ? (
-        users.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center">
-            No users found.
+    <div className="min-h-screen bg-black text-white">
+      <div className="mx-auto min-h-screen max-w-[975px] border-x border-neutral-800 bg-black pb-24">
+        {/* Header */}
+        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+          <div className="flex h-14 items-center gap-3 px-4">
+            <Compass size={24} />
+            <h1 className="text-xl font-bold tracking-tight">Explore</h1>
           </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {users.map((person) => (
-              <UserCard
-                key={person._id}
-                person={person}
-                onFollowChange={handleFollowChange}
+
+          {/* Search */}
+          <div className="px-4 pb-3">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-500"
               />
+
+              <input
+                type="text"
+                placeholder="Search users"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-neutral-800 bg-neutral-900 px-4 py-2.5 pl-11 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-neutral-600"
+              />
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="grid grid-cols-2">
+            <button
+              onClick={() => setActiveTab("posts")}
+              className={`flex items-center justify-center gap-2 border-b py-3 text-sm font-semibold transition ${
+                activeTab === "posts"
+                  ? "border-white text-white"
+                  : "border-transparent text-neutral-500 hover:text-neutral-200"
+              }`}
+            >
+              <Newspaper size={17} />
+              Posts
+            </button>
+
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`flex items-center justify-center gap-2 border-b py-3 text-sm font-semibold transition ${
+                activeTab === "users"
+                  ? "border-white text-white"
+                  : "border-transparent text-neutral-500 hover:text-neutral-200"
+              }`}
+            >
+              <Users size={17} />
+              Users
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+              <Loader2 size={22} className="animate-spin" />
+              Loading explore...
+            </div>
+          </div>
+        ) : activeTab === "users" ? (
+          users.length === 0 ? (
+            <EmptyState message="No users found." />
+          ) : (
+            <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3">
+              {users.map((person) => (
+                <div
+                  key={person._id}
+                  className="border-b border-neutral-800 p-3 sm:border-r"
+                >
+                  <UserCard
+                    person={person}
+                    onFollowChange={handleFollowChange}
+                  />
+                </div>
+              ))}
+            </div>
+          )
+        ) : posts.length === 0 ? (
+          <EmptyState message="No posts found." />
+        ) : (
+          <div className="mx-auto max-w-[630px]">
+            {posts.map((post) => (
+              <div key={post._id} className="border-b border-neutral-800">
+                <PostCard
+                  post={post}
+                  onPostDeleted={handlePostDeleted}
+                  onPostUpdated={handlePostUpdated}
+                />
+              </div>
             ))}
           </div>
-        )
-      ) : (
-        <div className="mx-auto max-w-2xl space-y-6">
-          {posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onPostDeleted={handlePostDeleted}
-              onPostUpdated={handlePostUpdated}
-            />
-          ))}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-export default Explore; 
+function EmptyState({ message }) {
+  return (
+    <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+      <div>
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+          <Search size={34} className="text-neutral-400" />
+        </div>
+
+        <h2 className="text-xl font-bold text-white">{message}</h2>
+
+        <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
+          Try searching something else or check back later.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default Explore;

@@ -13,6 +13,7 @@ import userRoutes from "./routes/userRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
@@ -21,6 +22,7 @@ connectDB();
 
 const app = express();
 const server = http.createServer(app);
+const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = (process.env.CLIENT_URL || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -54,11 +56,13 @@ export const io = new Server(server, {
 export const onlineUsers = new Map();
 
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  if (!isProduction) {
+    console.log("Socket connected:", socket.id);
+  }
 
   socket.on("addUser", (userId) => {
+    if (!userId) return;
     onlineUsers.set(userId, socket.id);
-    console.log("Online users:", onlineUsers);
   });
 
   socket.on("disconnect", () => {
@@ -69,7 +73,9 @@ io.on("connection", (socket) => {
       }
     }
 
-    console.log("Socket disconnected:", socket.id);
+    if (!isProduction) {
+      console.log("Socket disconnected:", socket.id);
+    }
   });
 });
 
@@ -80,7 +86,9 @@ app.use(
     crossOriginResourcePolicy: false,
   }),
 );
-app.use(morgan("dev"));
+if (!isProduction) {
+  app.use(morgan("dev"));
+}
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -102,6 +110,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -121,4 +130,31 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+const shutdown = (signal) => {
+  console.log(`${signal} received. Shutting down gracefully...`);
+
+  server.close(() => {
+    console.log("HTTP server closed");
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    console.error("Forcefully shutting down due to timeout");
+    process.exit(1);
+  }, 10000).unref();
+};
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception:", error);
+  shutdown("uncaughtException");
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+  shutdown("unhandledRejection");
 });

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Image, Send, X } from "lucide-react";
+import { Image, Loader2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { createPost } from "../services/postService";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/useAuth";
 import Avatar from "./Avatar";
 
 function CreatePost({ onPostCreated }) {
@@ -67,52 +67,72 @@ function CreatePost({ onPostCreated }) {
   };
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
-      <form onSubmit={handleSubmit}>
-        <div className="flex gap-4">
-          <Avatar user={user} size={48} />
+    <div className="border-b border-neutral-800 bg-black">
+      <form onSubmit={handleSubmit} className="px-4 py-4">
+        <div className="flex gap-3">
+          <div className="shrink-0">
+            <Avatar user={user} size={42} />
+          </div>
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={`What's happening, ${user?.name}?`}
-            rows="3"
-            className="w-full resize-none rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-sm outline-none placeholder:text-slate-500 focus:border-indigo-400"
-          />
-        </div>
-
-        {preview && (
-          <div className="relative mt-4 overflow-hidden rounded-3xl border border-white/10">
-            <img
-              src={preview}
-              alt="Preview"
-              className="max-h-96 w-full object-cover"
+          <div className="min-w-0 flex-1">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder={`What's on your mind${user?.name ? `, ${user.name}` : ""}?`}
+              rows="3"
+              className="min-h-24 w-full resize-none bg-transparent text-sm leading-6 text-white outline-none placeholder:text-neutral-500"
             />
 
-            <button
-              type="button"
-              onClick={removeImage}
-              className="absolute right-3 top-3 rounded-full bg-black/70 p-2 text-white"
-            >
-              <X size={18} />
-            </button>
+            {preview && (
+              <div className="relative mt-3 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950">
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-h-[420px] w-full object-cover"
+                />
+
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white backdrop-blur-md transition hover:bg-neutral-800"
+                  title="Remove image"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-between border-t border-neutral-900 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 rounded-full px-2 py-1.5 text-sm font-semibold text-[#0095f6] transition hover:bg-[#0095f6]/10">
+                <Image size={20} />
+                Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handleImage}
+                />
+              </label>
+
+              <button
+                disabled={loading || (!content.trim() && !image)}
+                className={`rounded-lg px-5 py-1.5 text-sm font-semibold transition ${
+                  loading || (!content.trim() && !image)
+                    ? "cursor-not-allowed bg-[#0095f6]/40 text-white/70"
+                    : "bg-[#0095f6] text-white hover:bg-[#1877f2] active:scale-95"
+                }`}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={16} className="animate-spin" />
+                    Posting
+                  </span>
+                ) : (
+                  "Post"
+                )}
+              </button>
+            </div>
           </div>
-        )}
-
-        <div className="mt-4 flex items-center justify-between">
-          <label className="flex cursor-pointer items-center gap-2 rounded-2xl bg-white/10 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/20">
-            <Image size={18} />
-            Photo
-            <input type="file" accept="image/*" hidden onChange={handleImage} />
-          </label>
-
-          <button
-            disabled={loading}
-            className="flex items-center gap-2 rounded-2xl bg-indigo-500 px-5 py-2.5 text-sm font-semibold transition hover:bg-indigo-600 disabled:opacity-60"
-          >
-            <Send size={18} />
-            {loading ? "Posting..." : "Post"}
-          </button>
         </div>
       </form>
     </div>

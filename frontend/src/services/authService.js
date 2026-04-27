@@ -11,3 +11,11 @@ export const loginUser = (loginData) => {
 export const getMe = () => {
   return api.get("/auth/me");
 };
+
+export const forgotPassword = (email) => {
+  return api.post("/auth/forgot-password", { email });
+};
+
+export const resetPassword = (token, password, confirmPassword) => {
+  return api.put(`/auth/reset-password/${token}`, { password, confirmPassword });
+};
