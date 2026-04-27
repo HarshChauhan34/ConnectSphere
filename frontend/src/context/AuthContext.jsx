@@ -2,11 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import { getMe, loginUser, registerUser } from "../services/authService";
 import { AuthContext } from "./AuthContextValue";
 
+const getStoredUser = () => {
+  try {
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) return null;
+    return JSON.parse(rawUser);
+  } catch {
+    localStorage.removeItem("user");
+    return null;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")) || null);
+  const [user, setUser] = useState(() => getStoredUser());
 
   const [loading, setLoading] = useState(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const storedUser = getStoredUser();
     return Boolean(storedUser?.token);
   });
 
@@ -33,7 +44,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await getMe();
 
-      const oldUser = JSON.parse(localStorage.getItem("user"));
+      const oldUser = getStoredUser();
 
       const updatedUser = {
         ...res.data.user,
@@ -48,6 +59,17 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    const onForcedLogout = () => {
+      localStorage.removeItem("user");
+      setUser(null);
+      setLoading(false);
+    };
+
+    window.addEventListener("auth:logout", onForcedLogout);
+    return () => window.removeEventListener("auth:logout", onForcedLogout);
   }, []);
 
   useEffect(() => {

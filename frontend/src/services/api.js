@@ -11,13 +11,19 @@ const api = axios.create({
   timeout: 15000,
 });
 
-api.interceptors.request.use((config) => {
-  let user;
+const getStoredUser = () => {
   try {
-    user = JSON.parse(localStorage.getItem("user"));
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) return null;
+    return JSON.parse(rawUser);
   } catch {
-    user = undefined;
+    localStorage.removeItem("user");
+    return null;
   }
+};
+
+api.interceptors.request.use((config) => {
+  const user = getStoredUser();
 
   if (user?.token) {
     config.headers.Authorization = `Bearer ${user.token}`;
@@ -25,5 +31,25 @@ api.interceptors.request.use((config) => {
 
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event("auth:logout"));
+    }
+
+    if (error?.code === "ECONNABORTED") {
+      error.message = "Request timed out. Please check your connection.";
+    } else if (!error?.response) {
+      error.message = "Network error. Please try again.";
+    }
+
+    return Promise.reject(error);
+  },
+);
 
 export default api;

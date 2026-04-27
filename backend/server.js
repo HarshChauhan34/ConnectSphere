@@ -23,6 +23,9 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 const isProduction = process.env.NODE_ENV === "production";
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
 const allowedOrigins = (process.env.CLIENT_URL || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -112,9 +115,6 @@ app.use("/api/comments", commentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 
-app.use(notFound);
-app.use(errorHandler);
-
 app.get("/", (req, res) => {
   res.send("Social Media Platform API is running...");
 });
@@ -125,6 +125,9 @@ app.get("/api/health", (req, res) => {
     message: "Server is healthy",
   });
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 

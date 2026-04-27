@@ -15,6 +15,9 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user?._id) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
       socketRef.current = null;
       return;
     }
@@ -22,14 +25,23 @@ export const SocketProvider = ({ children }) => {
     const socketUrl =
       import.meta.env.VITE_SOCKET_URL ||
       (import.meta.env.PROD ? PROD_SOCKET_FALLBACK : DEV_SOCKET_FALLBACK);
-    const newSocket = io(socketUrl);
+    const newSocket = io(socketUrl, {
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 8,
+      reconnectionDelay: 1000,
+      timeout: 12000,
+    });
     socketRef.current = newSocket;
 
     newSocket.emit("addUser", user._id);
 
     newSocket.on("newNotification", (notification) => {
       setLiveNotifications((prev) => [notification, ...prev]);
-      toast.success(notification.message);
+      if (notification?.message) {
+        toast.success(notification.message);
+      }
     });
     newSocket.on("newMessage", (message) => {
       messageListenersRef.current.forEach((listener) => {

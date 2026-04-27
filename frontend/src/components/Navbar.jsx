@@ -62,6 +62,7 @@ function Navbar() {
 
   useEffect(() => {
     if (!user?._id) return;
+    if (location.pathname.startsWith("/messages")) return;
 
     const timer = setTimeout(() => {
       void fetchUnreadMessages();
@@ -73,7 +74,10 @@ function Navbar() {
   useEffect(() => {
     if (!user?._id) return undefined;
 
-    return subscribeToMessages(() => {
+    return subscribeToMessages((message) => {
+      const isIncomingForUser = message?.receiver?._id === user._id;
+      if (!isIncomingForUser) return;
+
       if (!location.pathname.startsWith("/messages")) {
         setUnreadMessages((prev) => prev + 1);
       }
@@ -100,10 +104,16 @@ function Navbar() {
     return unreadMap.size;
   }, [liveNotifications, location.pathname, unreadServerNotifications]);
 
+  const displayUnreadMessages = location.pathname.startsWith("/messages")
+    ? 0
+    : unreadMessages;
+
   const handleLogout = () => {
     const confirmLogout = window.confirm("Are you sure you want to logout?");
     if (!confirmLogout) return;
 
+    setUnreadMessages(0);
+    setUnreadServerNotifications([]);
     logout();
     toast.success("Logout successful");
     navigate("/login");
@@ -156,7 +166,7 @@ function Navbar() {
           <NavLink to="/messages" className={navClass}>
             <div className="relative">
               <MessageCircle size={26} />
-              <CountBadge count={unreadMessages} />
+              <CountBadge count={displayUnreadMessages} />
             </div>
             <span>Messages</span>
           </NavLink>
@@ -206,7 +216,7 @@ function Navbar() {
             <NavLink to="/messages" className={mobileNavClass}>
               <div className="relative">
                 <MessageCircle size={24} />
-                <CountBadge count={unreadMessages} />
+                <CountBadge count={displayUnreadMessages} />
               </div>
             </NavLink>
 
@@ -238,11 +248,6 @@ function Navbar() {
               <CountBadge count={unreadCount} />
             </NavLink>
 
-            {/* <NavLink to="/messages" className="relative">
-              <MessageCircle size={24} />
-              <CountBadge count={unreadMessages} />
-            </NavLink> */}
-
             <button onClick={handleLogout} title="Logout">
               <LogOut size={22} />
             </button>
@@ -265,17 +270,10 @@ function Navbar() {
             <Compass size={25} />
           </NavLink>
 
-          {/* <NavLink to="/notifications" className={mobileNavClass}>
-            <div className="relative">
-              <Bell size={25} />
-              <CountBadge count={unreadCount} />
-            </div>
-          </NavLink> */}
-
           <NavLink to="/messages" className={mobileNavClass}>
             <div className="relative">
               <MessageCircle size={24} />
-              <CountBadge count={unreadMessages} />
+              <CountBadge count={displayUnreadMessages} />
             </div>
           </NavLink>
 

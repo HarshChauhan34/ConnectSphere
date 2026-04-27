@@ -48,8 +48,8 @@ function Messages() {
       setConversationsLoading(true);
       const res = await getConversations();
       setConversations(res.data.conversations || []);
-    } catch {
-      toast.error("Failed to load conversations");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load conversations");
     } finally {
       setConversationsLoading(false);
     }
@@ -65,8 +65,8 @@ function Messages() {
       setMessagesLoading(true);
       const res = await getMessagesWithUser(userId);
       setMessages(res.data.messages || []);
-    } catch {
-      toast.error("Failed to load messages");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to load messages");
     } finally {
       setMessagesLoading(false);
     }
@@ -90,17 +90,25 @@ function Messages() {
 
   useEffect(() => {
     if (!search.trim()) return undefined;
+    let isCancelled = false;
 
     const timer = setTimeout(async () => {
       try {
         const res = await getAllUsers(search);
-        setSearchUsers(res.data.users || []);
+        if (!isCancelled) {
+          setSearchUsers(res.data.users || []);
+        }
       } catch {
-        setSearchUsers([]);
+        if (!isCancelled) {
+          setSearchUsers([]);
+        }
       }
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
   }, [search]);
 
   const displayedSearchUsers = search.trim() ? searchUsers : [];
