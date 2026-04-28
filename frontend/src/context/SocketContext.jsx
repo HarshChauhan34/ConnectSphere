@@ -6,6 +6,27 @@ import { SocketContext } from "./SocketContextValue";
 
 const PROD_SOCKET_FALLBACK = "https://connectsphere-8g4j.onrender.com";
 const DEV_SOCKET_FALLBACK = "http://localhost:5000";
+const isLocalBrowser =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const resolveSocketUrl = () => {
+  const configuredUrl = import.meta.env.VITE_SOCKET_URL;
+  const isLocalSocket = configuredUrl?.includes("localhost");
+
+  if (isLocalBrowser) {
+    return DEV_SOCKET_FALLBACK;
+  }
+
+  if (import.meta.env.PROD && isLocalSocket) {
+    return PROD_SOCKET_FALLBACK;
+  }
+
+  return (
+    configuredUrl ||
+    (import.meta.env.PROD ? PROD_SOCKET_FALLBACK : DEV_SOCKET_FALLBACK)
+  ).replace(/\/socket\.io\/?$/, "");
+};
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
@@ -22,9 +43,7 @@ export const SocketProvider = ({ children }) => {
       return;
     }
 
-    const socketUrl =
-      import.meta.env.VITE_SOCKET_URL ||
-      (import.meta.env.PROD ? PROD_SOCKET_FALLBACK : DEV_SOCKET_FALLBACK);
+    const socketUrl = resolveSocketUrl();
     const newSocket = io(socketUrl, {
       withCredentials: true,
       transports: ["websocket", "polling"],

@@ -2,9 +2,29 @@ import axios from "axios";
 
 const PROD_API_FALLBACK = "https://connectsphere-8g4j.onrender.com/api";
 const DEV_API_FALLBACK = "http://localhost:5000/api";
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? PROD_API_FALLBACK : DEV_API_FALLBACK);
+const isLocalBrowser =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const resolveApiUrl = () => {
+  const configuredUrl = import.meta.env.VITE_API_URL;
+  const isLocalApi = configuredUrl?.includes("localhost");
+
+  if (isLocalBrowser) {
+    return DEV_API_FALLBACK;
+  }
+
+  if (import.meta.env.PROD && isLocalApi) {
+    return PROD_API_FALLBACK;
+  }
+
+  return (
+    configuredUrl ||
+    (import.meta.env.PROD ? PROD_API_FALLBACK : DEV_API_FALLBACK)
+  );
+};
+
+const API_URL = resolveApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,

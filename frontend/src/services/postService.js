@@ -26,7 +26,7 @@ export const likeUnlikePost = (postId) => {
 
 export const updatePost = (postId, postData) => {
   return api.put(`/posts/${postId}`, postData);
-};
+};  
 
 export const deletePost = (postId) => {
   return api.delete(`/posts/${postId}`);
