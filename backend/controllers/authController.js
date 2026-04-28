@@ -6,11 +6,23 @@ import sendEmail from "../utils/sendEmail.js";
 const PASSWORD_RESET_EXPIRY_MS = 15 * 60 * 1000;
 const PASSWORD_RESET_EXPIRY_MINUTES = PASSWORD_RESET_EXPIRY_MS / (60 * 1000);
 
-const getClientResetUrl = (token) => {
-  const clientBaseUrl = (process.env.CLIENT_URL || "http://localhost:5173")
-    .split(",")[0]
-    .trim()
-    .replace(/\/+$/, "");
+const getClientResetUrl = (token, req) => {
+  const preferredUrl = process.env.PASSWORD_RESET_BASE_URL?.trim();
+  const firstClientUrl = (process.env.CLIENT_URL || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean)[0];
+  const requestOrigin = req?.headers?.origin?.trim();
+
+  const candidateUrl = preferredUrl || firstClientUrl || requestOrigin;
+
+  if (!candidateUrl) {
+    throw new Error(
+      "Password reset URL is not configured. Set PASSWORD_RESET_BASE_URL or CLIENT_URL in backend .env",
+    );
+  }
+
+  const clientBaseUrl = candidateUrl.replace(/\/+$/, "");
 
   return `${clientBaseUrl}/reset-password/${token}`;
 };
@@ -156,7 +168,7 @@ export const forgotPassword = async (req, res) => {
     user.passwordResetExpires = Date.now() + PASSWORD_RESET_EXPIRY_MS;
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = getClientResetUrl(resetToken);
+    const resetUrl = getClientResetUrl(resetToken, req);
     const appName = "ConnectSphere";
     const supportEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
     const messageText = [
@@ -183,15 +195,15 @@ export const forgotPassword = async (req, res) => {
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <title>${appName} Password Reset</title>
         </head>
-        <body style="margin:0;padding:0;background:#0b0f14;color:#111827;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#0b0f14;padding:28px 12px;">
+        <body style="margin:0;padding:0;background:#0a0f1a;color:#111827;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#0a0f1a;padding:28px 12px;">
             <tr>
               <td align="center">
-                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
                   <tr>
-                    <td style="background:linear-gradient(135deg,#0ea5e9,#2563eb);padding:22px 24px;">
-                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#dbeafe;">${appName}</p>
-                      <h1 style="margin:8px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.3;color:#ffffff;">Reset Your Password</h1>
+                    <td style="background:linear-gradient(135deg,#0ea5e9,#2563eb);padding:24px 24px;">
+                      <p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#dbeafe;">${appName}</p>
+                      <h1 style="margin:10px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:1.3;color:#ffffff;">Reset Your Password</h1>
                     </td>
                   </tr>
                   <tr>
