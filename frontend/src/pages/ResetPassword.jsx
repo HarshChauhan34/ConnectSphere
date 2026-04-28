@@ -3,6 +3,11 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { resetPassword } from "../services/authService";
+import {
+  isStrongPassword,
+  passwordPolicyMessage,
+  passwordRequirements,
+} from "../utils/authValidation";
 
 function ResetPassword() {
   const { token } = useParams();
@@ -29,6 +34,11 @@ function ResetPassword() {
 
     if (form.password !== form.confirmPassword) {
       toast.error("Passwords do not match");
+      return;
+    }
+
+    if (!isStrongPassword(form.password)) {
+      toast.error(passwordPolicyMessage);
       return;
     }
 
@@ -82,6 +92,21 @@ function ResetPassword() {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5 text-xs text-neutral-500">
+              {passwordRequirements.map((requirement) => {
+                const isMet = requirement.test(form.password);
+
+                return (
+                  <span
+                    key={requirement.label}
+                    className={isMet ? "text-emerald-400" : "text-neutral-500"}
+                  >
+                    {isMet ? "OK" : "-"} {requirement.label}
+                  </span>
+                );
+              })}
             </div>
 
             <div className="relative">

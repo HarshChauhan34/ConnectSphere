@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { forgotPassword } from "../services/authService";
+import { isValidEmail, normalizeEmail } from "../utils/authValidation";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -11,9 +12,16 @@ function ForgotPassword() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     try {
       setLoading(true);
-      const res = await forgotPassword(email);
+      const res = await forgotPassword(normalizedEmail);
       toast.success(res.data.message || "Reset link sent if email exists");
       setEmail("");
     } catch (error) {

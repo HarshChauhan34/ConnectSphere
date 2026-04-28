@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import {
+  emailRegex,
+  passwordPolicyMessage,
+  isStrongPassword,
+} from "../utils/authValidation.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -26,12 +31,16 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
+      match: [emailRegex, "Please provide a valid email address"],
     },
 
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: 6,
+      validate: {
+        validator: isStrongPassword,
+        message: passwordPolicyMessage,
+      },
       select: false, // 🔐 hidden by default
     },
 

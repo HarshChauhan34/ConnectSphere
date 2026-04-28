@@ -2,6 +2,12 @@ import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import crypto from "crypto";
 import sendEmail from "../utils/sendEmail.js";
+import {
+  isValidEmail,
+  normalizeEmail,
+  passwordPolicyMessage,
+  isStrongPassword,
+} from "../utils/authValidation.js";
 
 const PASSWORD_RESET_EXPIRY_MS = 15 * 60 * 1000;
 const PASSWORD_RESET_EXPIRY_MINUTES = PASSWORD_RESET_EXPIRY_MS / (60 * 1000);
@@ -30,16 +36,32 @@ const getClientResetUrl = (token, req) => {
 export const registerUser = async (req, res) => {
   try {
     const { name, username, email, password } = req.body;
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedUsername = username?.trim().toLowerCase();
 
-    if (!name || !username || !email || !password) {
+    if (!name?.trim() || !normalizedUsername || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Please fill all fields",
       });
     }
 
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+    }
+
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: passwordPolicyMessage,
+      });
+    }
+
     const userExists = await User.findOne({
-      $or: [{ email }, { username }],
+      $or: [{ email: normalizedEmail }, { username: normalizedUsername }],
     });
 
     if (userExists) {
@@ -50,9 +72,9 @@ export const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name,
-      username,
-      email,
+      name: name.trim(),
+      username: normalizedUsername,
+      email: normalizedEmail,
       password,
     });
 
@@ -145,7 +167,15 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address",
+      });
+    }
+
     const user = await User.findOne({ email: normalizedEmail }).select(
       "+passwordResetToken +passwordResetExpires",
     );
@@ -299,10 +329,10 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    if (password.length < 6) {
+    if (!isStrongPassword(password)) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 6 characters",
+        message: passwordPolicyMessage,
       });
     }
 

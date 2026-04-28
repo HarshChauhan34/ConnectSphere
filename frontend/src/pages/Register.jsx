@@ -3,6 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
+import {
+  isStrongPassword,
+  isValidEmail,
+  normalizeEmail,
+  passwordPolicyMessage,
+  passwordRequirements,
+} from "../utils/authValidation";
 
 function Register() {
   const navigate = useNavigate();
@@ -28,9 +35,26 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const email = normalizeEmail(form.email);
+
+    if (!isValidEmail(email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (!isStrongPassword(form.password)) {
+      toast.error(passwordPolicyMessage);
+      return;
+    }
+
     try {
       setLoading(true);
-      await register(form);
+      await register({
+        ...form,
+        name: form.name.trim(),
+        username: form.username.trim().toLowerCase(),
+        email,
+      });
       toast.success("Account created successfully");
       navigate("/");
     } catch (error) {
@@ -99,8 +123,29 @@ function Register() {
               </button>
             </div>
 
+            <div className="grid grid-cols-2 gap-1.5 text-xs text-neutral-500">
+              {passwordRequirements.map((requirement) => {
+                const isMet = requirement.test(form.password);
+
+                return (
+                  <span
+                    key={requirement.label}
+                    className={isMet ? "text-emerald-400" : "text-neutral-500"}
+                  >
+                    {isMet ? "OK" : "-"} {requirement.label}
+                  </span>
+                );
+              })}
+            </div>
+
             <button
-              disabled={loading}
+              disabled={
+                loading ||
+                !form.name.trim() ||
+                !form.username.trim() ||
+                !form.email.trim() ||
+                !form.password
+              }
               className="mt-3 flex w-full items-center justify-center rounded-lg bg-[#0095f6] py-2 text-sm font-semibold text-white transition hover:bg-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? (
