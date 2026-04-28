@@ -114,7 +114,7 @@ function CommentBox({ post, onCommentCountChange }) {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm leading-5 text-neutral-200">
+                  <p className="wrap-break-word text-sm leading-5 text-neutral-200">
                     <span className="mr-1 font-semibold text-white">
                       {comment.user?.username || comment.user?.name}
                     </span>

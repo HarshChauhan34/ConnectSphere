@@ -50,7 +50,7 @@ function ResetPassword() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black px-4 py-8 text-white">
-      <div className="mx-auto w-full max-w-[350px]">
+      <div className="mx-auto w-full max-w-87.5">
         <div className="border border-neutral-800 bg-black px-10 py-10">
           <h1 className="mb-4 text-center text-3xl font-semibold tracking-tight">
             ConnectSphere

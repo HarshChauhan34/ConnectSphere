@@ -15,12 +15,14 @@ import {
 } from "../services/notificationService";
 import { useSocket } from "../context/useSocket";
 import Avatar from "../components/Avatar";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function Notifications() {
   const { liveNotifications, setLiveNotifications } = useSocket();
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
 
   const allNotifications = [...liveNotifications, ...notifications];
 
@@ -49,9 +51,6 @@ function Notifications() {
   }, [fetchNotifications]);
 
   const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Delete this notification?");
-    if (!confirmDelete) return;
-
     try {
       await deleteNotification(id);
 
@@ -76,9 +75,9 @@ function Notifications() {
 
   return (
     <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
-      <div className="mx-auto flex h-full max-w-[630px] flex-col border-x border-neutral-800 bg-black">
+      <div className="mx-auto flex h-full max-w-157.5 flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
-        <div className="fixed left-1/2 top-14 z-40 w-full max-w-[630px] -translate-x-1/2 border-x border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
+        <div className="fixed left-1/2 top-14 z-40 w-full max-w-157.5 -translate-x-1/2 border-x border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
           <div className="flex h-14 items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <Bell size={24} />
@@ -98,14 +97,14 @@ function Notifications() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto pt-14 pb-24 md:pb-6">
           {loading ? (
-            <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex min-h-87.5 items-center justify-center">
               <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
                 <Loader2 size={22} className="animate-spin" />
                 Loading notifications...
               </div>
             </div>
           ) : allNotifications.length === 0 ? (
-            <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+            <div className="flex min-h-107.5 items-center justify-center px-6 text-center">
               <div>
                 <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
                   <Bell size={34} className="text-neutral-400" />
@@ -138,7 +137,7 @@ function Notifications() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="break-words text-sm leading-5 text-white">
+                    <p className="wrap-break-word text-sm leading-5 text-white">
                       <span className="font-semibold">
                         {notification.sender?.username}
                       </span>{" "}
@@ -153,7 +152,7 @@ function Notifications() {
                   </div>
 
                   <button
-                    onClick={() => handleDelete(notification._id)}
+                    onClick={() => setDeleteTargetId(notification._id)}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-900 hover:text-red-500"
                     title="Delete notification"
                   >
@@ -165,6 +164,21 @@ function Notifications() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(deleteTargetId)}
+        title="Delete Notification?"
+        message="This notification will be removed permanently."
+        confirmText="Delete"
+        danger
+        onCancel={() => setDeleteTargetId(null)}
+        onConfirm={() => {
+          if (!deleteTargetId) return;
+          const targetId = deleteTargetId;
+          setDeleteTargetId(null);
+          void handleDelete(targetId);
+        }}
+      />
     </div>
   );
 }

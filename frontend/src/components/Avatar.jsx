@@ -10,7 +10,7 @@ function Avatar({ user, size = 40 }) {
     return (
       <div
         style={{ width: size, height: size }}
-        className="flex items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 font-bold text-white"
+        className="flex items-center justify-center rounded-full bg-linear-to-br from-indigo-500 to-purple-600 font-bold text-white"
       >
         {getInitials(user?.name)}
       </div>

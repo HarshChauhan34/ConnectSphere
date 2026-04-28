@@ -94,7 +94,7 @@ function Connections() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex min-h-screen max-w-[600px] items-center justify-center border-x border-neutral-800">
+        <div className="mx-auto flex min-h-screen max-w-150 items-center justify-center border-x border-neutral-800">
           <div className="flex items-center gap-3 text-sm font-medium text-neutral-300">
             <Loader2 size={22} className="animate-spin" />
             Loading...
@@ -105,10 +105,10 @@ function Connections() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[600px] border-x border-neutral-800 bg-black">
+    <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
+      <div className="mx-auto flex h-full max-w-150 flex-col border-x border-neutral-800 bg-black">
         {/* Instagram Like Header */}
-        <div className="sticky top-0 z-30 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+        <div className="fixed left-1/2 top-14 z-40 w-full max-w-150 -translate-x-1/2 border-x border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
           <div className="flex h-14 items-center gap-3 px-4">
             <button
               onClick={() => navigate(-1)}
@@ -160,80 +160,88 @@ function Connections() {
           </div>
         </div>
 
-        {/* Empty State */}
-        {users.length === 0 ? (
-          <div className="flex min-h-[420px] items-center justify-center px-6 text-center">
-            <div>
-              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
-                <SearchX size={34} className="text-neutral-400" />
-              </div>
-
-              <h2 className="text-xl font-bold text-white">No users found</h2>
-              <p className="mt-2 text-sm text-neutral-400">
-                This profile does not have any users in this section yet.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {users.map((person) => {
-              const personId = person._id;
-              const isOwnRow = personId === user?._id;
-              const isFollowing =
-                followOverrides[personId] ?? followingSet.has(personId);
-              const isPending = pendingId === personId;
-
-              return (
-                <div
-                  key={personId}
-                  className="flex items-center gap-3 px-4 py-3 transition hover:bg-neutral-950"
-                >
-                  <Link to={`/profile/${personId}`} className="shrink-0">
-                    <div className="rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
-                      <div className="rounded-full bg-black p-[2px]">
-                        <Avatar user={person} size={48} />
-                      </div>
-                    </div>
-                  </Link>
-
-                  <Link to={`/profile/${personId}`} className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-white">
-                      {person.username}
-                    </p>
-
-                    <p className="truncate text-sm text-neutral-400">
-                      {person.name}
-                    </p>
-                  </Link>
-
-                  {!isOwnRow && (
-                    <button
-                      onClick={() => handleFollowToggle(personId)}
-                      disabled={isPending || pendingId !== null}
-                      className={`min-w-[92px] rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-                        isFollowing
-                          ? "border border-neutral-700 bg-neutral-900 text-white hover:bg-neutral-800"
-                          : "bg-[#0095f6] text-white hover:bg-[#1877f2]"
-                      } ${
-                        isPending || pendingId !== null
-                          ? "cursor-not-allowed opacity-60"
-                          : "active:scale-95"
-                      }`}
-                    >
-                      {isPending ? (
-                        <Loader2 size={16} className="mx-auto animate-spin" />
-                      ) : isFollowing ? (
-                        "Following"
-                      ) : (
-                        "Follow"
-                      )}
-                    </button>
-                  )}
+        <div className="min-h-0 flex-1 overflow-y-auto pt-27.5 pb-24 md:pb-6">
+          {/* Empty State */}
+          {users.length === 0 ? (
+            <div className="flex min-h-105 items-center justify-center px-6 text-center">
+              <div>
+                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                  <SearchX size={34} className="text-neutral-400" />
                 </div>
-              );
-            })}
+
+                <h2 className="text-xl font-bold text-white">No users found</h2>
+                <p className="mt-2 text-sm text-neutral-400">
+                  This profile does not have any users in this section yet.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {users.map((person) => {
+                const personId = person._id;
+                const isOwnRow = personId === user?._id;
+                const isFollowing =
+                  followOverrides[personId] ?? followingSet.has(personId);
+                const isPending = pendingId === personId;
+
+                return (
+                  <div
+                    key={personId}
+                    className="flex items-center gap-3 px-4 py-3 transition hover:bg-neutral-950"
+                  >
+                    <Link to={`/profile/${personId}`} className="shrink-0">
+                      <div className="rounded-full bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
+                        <div className="rounded-full bg-black p-0.5">
+                          <Avatar user={person} size={48} />
+                        </div>
+                      </div>
+                    </Link>
+
+                    <Link to={`/profile/${personId}`} className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-white">
+                        {person.username}
+                      </p>
+
+                      <p className="truncate text-sm text-neutral-400">
+                        {person.name}
+                      </p>
+                    </Link>
+
+                    {!isOwnRow && (
+                      isFollowing ? (
+                        <button
+                          onClick={() => navigate(`/messages/${personId}`)}
+                          className="min-w-23 rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-neutral-800 active:scale-95"
+                        >
+                          Message
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleFollowToggle(personId)}
+                          disabled={isPending || pendingId !== null}
+                          className={`min-w-23 rounded-lg bg-[#0095f6] px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-[#1877f2] ${
+                            isPending || pendingId !== null
+                              ? "cursor-not-allowed opacity-60"
+                              : "active:scale-95"
+                          }`}
+                        >
+                          {isPending ? (
+                            <Loader2
+                              size={16}
+                              className="mx-auto animate-spin"
+                            />
+                          ) : (
+                            "Follow"
+                          )}
+                        </button>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           </div>
-        )}
       </div>
     </div>
   );

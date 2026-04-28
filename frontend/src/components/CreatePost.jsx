@@ -88,7 +88,7 @@ function CreatePost({ onPostCreated }) {
                 <img
                   src={preview}
                   alt="Preview"
-                  className="max-h-[420px] w-full object-cover"
+                  className="max-h-105 w-full object-cover"
                 />
 
                 <button

@@ -4,9 +4,11 @@ import { Compass, Search, Users, Newspaper, Loader2 } from "lucide-react";
 import UserCard from "../components/UserCard";
 import PostCard from "../components/PostCard";
 import { getAllUsers } from "../services/userService";
-import { getExplorePosts } from "../services/postService";
+import { getFeedPosts } from "../services/postService";
+import { useAuth } from "../context/useAuth";
 
 function Explore() {
+  const { user } = useAuth();
   const [users, setUsers] = useState([]);
   const [posts, setPosts] = useState([]);
   const [search, setSearch] = useState("");
@@ -19,17 +21,20 @@ function Explore() {
 
       const [usersRes, postsRes] = await Promise.all([
         getAllUsers(search),
-        getExplorePosts(),
+        getFeedPosts(),
       ]);
 
       setUsers(usersRes.data.users);
-      setPosts(postsRes.data.posts);
+      const filteredPosts = (postsRes.data.posts || []).filter(
+        (post) => post.user?._id !== user?._id
+      );
+      setPosts(filteredPosts);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load explore");
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, user?._id]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,11 +49,32 @@ function Explore() {
       prev.map((person) => {
         if (person._id !== personId) return person;
 
+        const followers = person.followers || [];
+        const hasCurrentUser = followers.some((follower) => {
+          const followerId = follower?._id || follower;
+          return followerId === user?._id;
+        });
+
+        if (isFollowing && !hasCurrentUser) {
+          return {
+            ...person,
+            followers: [...followers, user?._id],
+          };
+        }
+
+        if (!isFollowing && hasCurrentUser) {
+          return {
+            ...person,
+            followers: followers.filter((follower) => {
+              const followerId = follower?._id || follower;
+              return followerId !== user?._id;
+            }),
+          };
+        }
+
         return {
           ...person,
-          followers: isFollowing
-            ? [...(person.followers || []), "me"]
-            : (person.followers || []).slice(0, -1),
+          followers,
         };
       })
     );
@@ -66,7 +92,7 @@ function Explore() {
 
   return (
     <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
-      <div className="mx-auto flex h-full max-w-[975px] flex-col border-x border-neutral-800 bg-black">
+      <div className="mx-auto flex h-full max-w-243.75 flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
           <div className="flex h-14 items-center gap-3 px-4">
@@ -103,7 +129,7 @@ function Explore() {
               }`}
             >
               <Newspaper size={17} />
-              Posts
+              Following
             </button>
 
             <button
@@ -123,7 +149,7 @@ function Explore() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
           {loading ? (
-            <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex min-h-87.5 items-center justify-center">
               <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
                 <Loader2 size={22} className="animate-spin" />
                 Loading explore...
@@ -150,7 +176,7 @@ function Explore() {
           ) : posts.length === 0 ? (
             <EmptyState message="No posts found." />
           ) : (
-            <div className="mx-auto max-w-[630px]">
+            <div className="mx-auto max-w-157.5">
               {posts.map((post) => (
                 <div key={post._id} className="border-b border-neutral-800">
                   <PostCard
@@ -170,7 +196,7 @@ function Explore() {
 
 function EmptyState({ message }) {
   return (
-    <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+    <div className="flex min-h-107.5 items-center justify-center px-6 text-center">
       <div>
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
           <Search size={34} className="text-neutral-400" />

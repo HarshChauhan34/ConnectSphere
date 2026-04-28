@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
+  X,
   Camera,
   Save,
-  UserPlus,
-  UserMinus,
   Loader2,
   ImagePlus,
-  Edit3,
   Grid3X3,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import {
@@ -17,9 +17,9 @@ import {
   getUserProfile,
   updateProfile,
 } from "../services/userService";
-import { getUserPosts } from "../services/postService";
-import PostCard from "../components/PostCard";
+import { deletePost, getUserPosts } from "../services/postService";
 import Avatar from "../components/Avatar";
+import ConfirmDialog from "../components/ConfirmDialog";
 
 function Profile() {
   const { id } = useParams();
@@ -31,6 +31,8 @@ function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
   const [preview, setPreview] = useState("");
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showDeletePostConfirm, setShowDeletePostConfirm] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -89,7 +91,10 @@ function Profile() {
       formData.append("name", form.name);
       formData.append("username", form.username);
       formData.append("bio", form.bio);
-      if (avatarFile) formData.append("avatar", avatarFile);
+
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
 
       const res = await updateProfile(formData);
 
@@ -119,8 +124,8 @@ function Profile() {
       setProfile((prev) => ({
         ...prev,
         followers: res.data.isFollowing
-          ? [...prev.followers, user._id]
-          : prev.followers.filter((follower) => {
+          ? [...(prev.followers || []), user._id]
+          : (prev.followers || []).filter((follower) => {
               const followerId = follower._id || follower;
               return followerId !== user._id;
             }),
@@ -132,20 +137,27 @@ function Profile() {
     }
   };
 
-  const handlePostDeleted = (postId) => {
-    setPosts((prev) => prev.filter((post) => post._id !== postId));
+  const openPost = (post) => {
+    setSelectedPost(post);
   };
 
-  const handlePostUpdated = (updatedPost) => {
-    setPosts((prev) =>
-      prev.map((post) => (post._id === updatedPost._id ? updatedPost : post))
-    );
+  const handleDeleteOwnPost = async () => {
+    if (!selectedPost?._id) return;
+
+    try {
+      await deletePost(selectedPost._id);
+      setPosts((prev) => prev.filter((post) => post._id !== selectedPost._id));
+      setSelectedPost(null);
+      toast.success("Post deleted");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Delete failed");
+    }
   };
 
   if (!profile) {
     return (
       <div className="min-h-screen bg-black text-white">
-        <div className="mx-auto flex min-h-screen max-w-[935px] items-center justify-center border-x border-neutral-800">
+        <div className="mx-auto flex min-h-screen max-w-243.75 items-center justify-center border-x border-neutral-900">
           <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
             <Loader2 size={22} className="animate-spin" />
             Loading profile...
@@ -157,39 +169,48 @@ function Profile() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[935px] border-x border-neutral-800 bg-black pb-24">
-        {/* Header */}
-        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 px-4 py-3 backdrop-blur-xl">
-          <h1 className="text-xl font-bold">{profile.username}</h1>
-        </div>
+      <main className="mx-auto min-h-screen max-w-243.75 border-x border-neutral-900 bg-black pb-24">
+        {/* Mobile Username Header */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-900 bg-black/95 px-4 backdrop-blur-xl sm:hidden">
+          <h1 className="max-w-57.5 truncate text-xl font-bold">
+            {profile.username}
+          </h1>
 
-        {/* Profile Info */}
-        <section className="border-b border-neutral-800 px-4 py-6 sm:px-8">
-          <div className="flex gap-6 sm:gap-10">
-            <div className="shrink-0">
-              <div className="relative rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[3px]">
-                <div className="rounded-full bg-black p-[3px]">
-                  {preview ? (
-                    <img
-                      src={preview}
-                      alt="Avatar Preview"
-                      className="h-24 w-24 rounded-full object-cover sm:h-36 sm:w-36"
-                    />
-                  ) : (
-                    <>
-                      <div className="sm:hidden">
-                        <Avatar user={profile} size={96} />
-                      </div>
-                      <div className="hidden sm:block">
-                        <Avatar user={profile} size={144} />
-                      </div>
-                    </>
-                  )}
+          <button className="rounded-full p-2 active:bg-neutral-900">
+            <MoreHorizontal size={24} />
+          </button>
+        </header>
+
+        {/* Profile Section */}
+        <section className="px-4 pb-0 pt-5 sm:px-10 sm:pb-10 sm:pt-10">
+          <div className="grid grid-cols-[86px_1fr] gap-5 sm:grid-cols-[170px_1fr] sm:gap-12">
+            {/* Avatar */}
+            <div className="flex justify-center sm:pt-1">
+              <div className="relative h-21.5 w-21.5 sm:h-37.5 sm:w-37.5">
+                <div className="rounded-full bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
+                  <div className="rounded-full bg-black p-0.75">
+                    {preview ? (
+                      <img
+                        src={preview}
+                        alt="Avatar Preview"
+                        className="h-19 w-19 rounded-full object-cover sm:h-35 sm:w-35"
+                      />
+                    ) : (
+                      <>
+                        <div className="sm:hidden">
+                          <Avatar user={profile} size={76} />
+                        </div>
+                        <div className="hidden sm:block">
+                          <Avatar user={profile} size={140} />
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {editMode && (
-                  <label className="absolute bottom-1 right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#0095f6] text-white shadow-lg transition hover:bg-[#1877f2]">
-                    <Camera size={18} />
+                  <label className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-black bg-[#0095f6] text-white transition active:scale-95">
+                    <Camera size={16} />
                     <input
                       type="file"
                       accept="image/*"
@@ -201,44 +222,96 @@ function Profile() {
               </div>
             </div>
 
-            <div className="min-w-0 flex-1">
+            {/* Profile Info */}
+            <div className="min-w-0">
               {!editMode ? (
                 <>
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <h2 className="truncate text-xl font-normal text-white sm:text-2xl">
-                      {profile.username}
+                  <div className="hidden items-center gap-4 sm:flex">
+                    <h2 className="truncate text-xl font-normal">
+                      {profile.name}
                     </h2>
 
                     {isOwnProfile ? (
                       <button
                         onClick={() => setEditMode(true)}
-                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-neutral-800 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-neutral-700"
+                        className="rounded-lg bg-[#363636] px-4 py-1.5 text-sm font-semibold transition hover:bg-[#4a4a4a]"
                       >
-                        <Edit3 size={15} />
-                        Edit Profile
+                        Edit profile
                       </button>
                     ) : (
-                      <button
-                        onClick={handleFollow}
-                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-sm font-semibold transition ${
-                          isFollowing
-                            ? "bg-neutral-800 text-white hover:bg-neutral-700"
-                            : "bg-[#0095f6] text-white hover:bg-[#1877f2]"
-                        }`}
-                      >
-                        {isFollowing ? (
-                          <UserMinus size={15} />
-                        ) : (
-                          <UserPlus size={15} />
+                      <>
+                        <button
+                          onClick={handleFollow}
+                          className={`rounded-lg px-5 py-1.5 text-sm font-semibold transition ${
+                            isFollowing
+                              ? "bg-[#363636] hover:bg-[#4a4a4a]"
+                              : "bg-[#0095f6] hover:bg-[#1877f2]"
+                          }`}
+                        >
+                          {isFollowing ? "Following" : "Follow"}
+                        </button>
+
+                        {isFollowing && (
+                          <button
+                            onClick={() => navigate(`/messages/${profile._id}`)}
+                            className="rounded-lg bg-[#363636] px-5 py-1.5 text-sm font-semibold transition hover:bg-[#4a4a4a]"
+                          >
+                            Message
+                          </button>
                         )}
-                        {isFollowing ? "Following" : "Follow"}
-                      </button>
+                      </>
                     )}
+
+                    <button className="rounded-full p-1.5 transition hover:bg-neutral-900">
+                      <MoreHorizontal size={24} />
+                    </button>
                   </div>
 
-                  <div className="mt-5 flex gap-6 text-sm sm:gap-10">
+                  {/* Mobile Buttons */}
+                  <div className="sm:hidden">
+                    <h2 className="truncate text-xl font-semibold">
+                      {profile.name}
+                    </h2>
+
+                    <div className="mt-3 flex gap-2">
+                      {isOwnProfile ? (
+                        <button
+                          onClick={() => setEditMode(true)}
+                          className="flex-1 rounded-lg bg-[#363636] py-1.5 text-sm font-semibold"
+                        >
+                          Edit profile
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={handleFollow}
+                            className={`flex-1 rounded-lg py-1.5 text-sm font-semibold ${
+                              isFollowing ? "bg-[#363636]" : "bg-[#0095f6]"
+                            }`}
+                          >
+                            {isFollowing ? "Following" : "Follow"}
+                          </button>
+
+                          {isFollowing && (
+                            <button
+                              onClick={() =>
+                                navigate(`/messages/${profile._id}`)
+                              }
+                              className="flex-1 rounded-lg bg-[#363636] py-1.5 text-sm font-semibold"
+                            >
+                              Message
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Desktop Stats */}
+                  <div className="mt-6 hidden gap-10 text-base sm:flex">
                     <p>
-                      <span className="font-bold">{posts.length}</span> posts
+                      <span className="font-semibold">{posts.length}</span>{" "}
+                      posts
                     </p>
 
                     <button
@@ -247,7 +320,7 @@ function Profile() {
                         navigate(`/profile/${profile._id}/followers`)
                       }
                     >
-                      <span className="font-bold">
+                      <span className="font-semibold">
                         {profile.followers?.length || 0}
                       </span>{" "}
                       followers
@@ -259,23 +332,27 @@ function Profile() {
                         navigate(`/profile/${profile._id}/following`)
                       }
                     >
-                      <span className="font-bold">
+                      <span className="font-semibold">
                         {profile.following?.length || 0}
                       </span>{" "}
                       following
                     </button>
                   </div>
 
-                  <div className="mt-5 text-sm">
-                    <h3 className="font-bold text-white">{profile.name}</h3>
-                    <p className="mt-1 whitespace-pre-line text-neutral-200">
+                  {/* Desktop Bio */}
+                  <div className="mt-5 hidden text-sm leading-5 sm:block">
+                    <h3 className="font-semibold">{profile.username}</h3> 
+                    <p className="mt-1 max-w-105 whitespace-pre-line text-neutral-100">
                       {profile.bio || "No bio added yet."}
                     </p>
                   </div>
                 </>
               ) : (
-                <form onSubmit={handleUpdateProfile} className="space-y-3">
-                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-neutral-800 px-4 py-2 text-sm font-semibold transition hover:bg-neutral-700">
+                <form
+                  onSubmit={handleUpdateProfile}
+                  className="rounded-2xl border border-neutral-800 bg-[#121212] p-4"
+                >
+                  <label className="mb-4 inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[#363636] px-4 py-2 text-sm font-semibold transition hover:bg-[#4a4a4a]">
                     <ImagePlus size={17} />
                     Change Avatar
                     <input
@@ -286,33 +363,37 @@ function Profile() {
                     />
                   </label>
 
-                  <input
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm({ ...form, name: e.target.value })
-                    }
-                    placeholder="Name"
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
-                  />
+                  <div className="space-y-3">
+                    <input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
+                      placeholder="Name"
+                      className="w-full rounded-lg border border-neutral-700 bg-black px-4 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:border-neutral-400"
+                    />
 
-                  <input
-                    value={form.username}
-                    onChange={(e) =>
-                      setForm({ ...form, username: e.target.value })
-                    }
-                    placeholder="Username"
-                    className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
-                  />
+                    <input
+                      value={form.username}
+                      onChange={(e) =>
+                        setForm({ ...form, username: e.target.value })
+                      }
+                      placeholder="Username"
+                      className="w-full rounded-lg border border-neutral-700 bg-black px-4 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:border-neutral-400"
+                    />
 
-                  <textarea
-                    value={form.bio}
-                    onChange={(e) => setForm({ ...form, bio: e.target.value })}
-                    placeholder="Bio"
-                    rows="3"
-                    className="w-full resize-none rounded-lg border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-sm text-white outline-none placeholder:text-neutral-500 focus:border-neutral-500"
-                  />
+                    <textarea
+                      value={form.bio}
+                      onChange={(e) =>
+                        setForm({ ...form, bio: e.target.value })
+                      }
+                      placeholder="Bio"
+                      rows="3"
+                      className="w-full resize-none rounded-lg border border-neutral-700 bg-black px-4 py-2.5 text-sm outline-none placeholder:text-neutral-500 focus:border-neutral-400"
+                    />
+                  </div>
 
-                  <div className="flex gap-3">
+                  <div className="mt-4 flex gap-3">
                     <button className="inline-flex items-center gap-2 rounded-lg bg-[#0095f6] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#1877f2]">
                       <Save size={17} />
                       Save
@@ -325,7 +406,7 @@ function Profile() {
                         setAvatarFile(null);
                         setPreview("");
                       }}
-                      className="rounded-lg bg-neutral-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-neutral-700"
+                      className="rounded-lg bg-[#363636] px-5 py-2 text-sm font-semibold transition hover:bg-[#4a4a4a]"
                     >
                       Cancel
                     </button>
@@ -334,39 +415,189 @@ function Profile() {
               )}
             </div>
           </div>
-        </section>
 
-        {/* Posts Title */}
-        <div className="flex items-center justify-center gap-2 border-b border-neutral-800 py-3 text-xs font-bold uppercase tracking-widest text-white">
-          <Grid3X3 size={14} />
-          Posts
-        </div>
+          {/* Mobile Bio */}
+          {!editMode && (
+            <div className="mt-4 text-sm leading-5 sm:hidden">
+              {/* <h3 className="font-semibold">{profile.name}</h3> */}
+              <p className="mt-1 whitespace-pre-line text-neutral-100">
+                {profile.bio || "No bio added yet."}
+              </p>
+            </div>
+          )}
 
-        {/* Posts */}
-        {posts.length === 0 ? (
-          <div className="flex min-h-[300px] items-center justify-center px-6 text-center">
-            <div>
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
-                <Camera size={34} className="text-neutral-400" />
+          {/* Mobile Stats */}
+          {!editMode && (
+            <div className="mt-5 grid grid-cols-3 border-y border-neutral-800 py-3 text-center text-sm sm:hidden">
+              <div>
+                <p className="font-semibold">{posts.length}</p>
+                <p className="text-neutral-400">posts</p>
               </div>
 
-              <h2 className="text-xl font-bold text-white">No posts yet</h2>
+              <button
+                type="button"
+                onClick={() => navigate(`/profile/${profile._id}/followers`)}
+              >
+                <p className="font-semibold">
+                  {profile.followers?.length || 0}
+                </p>
+                <p className="text-neutral-400">followers</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate(`/profile/${profile._id}/following`)}
+              >
+                <p className="font-semibold">
+                  {profile.following?.length || 0}
+                </p>
+                <p className="text-neutral-400">following</p>
+              </button>
+            </div>
+          )}
+        </section>
+
+        {/* Tabs */}
+        <div className="mt-0 flex items-center justify-center border-t border-neutral-800 sm:border-t">
+          <button className="flex h-12 items-center gap-2 border-t border-white px-8 text-xs font-semibold uppercase tracking-[0.16em] text-white">
+            <Grid3X3 size={13} />
+            Posts
+          </button>
+        </div>
+
+        {/* Posts Grid */}
+        {posts.length === 0 ? (
+          <div className="flex min-h-80 items-center justify-center px-6 text-center">
+            <div>
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full border-2 border-neutral-500">
+                <Camera size={36} />
+              </div>
+              <h2 className="text-2xl font-bold">No posts yet</h2>
+              <p className="mt-2 text-sm text-neutral-400">
+                When posts are shared, they will appear here.
+              </p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto max-w-[630px]">
-            {posts.map((post) => (
-              <div key={post._id} className="border-b border-neutral-800">
-                <PostCard
-                  post={post}
-                  onPostDeleted={handlePostDeleted}
-                  onPostUpdated={handlePostUpdated}
-                />
-              </div>
-            ))}
+          <div className="grid grid-cols-3 gap-0.5 sm:gap-1">
+            {posts.map((post) => {
+              const image =
+                post.image ||
+                post.imageUrl ||
+                post.media ||
+                post.photo ||
+                post.fileUrl;
+
+              return (
+                <button
+                  key={post._id}
+                  type="button"
+                  className="group relative aspect-square overflow-hidden bg-neutral-900"
+                  onClick={() => openPost(post)}
+                >
+                  {image ? (
+                    <img
+                      src={image}
+                      alt="Post"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105 group-hover:brightness-75"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-neutral-900 p-3 text-center text-xs text-neutral-400">
+                      {post.caption || post.content || "Post"}
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 hidden items-center justify-center bg-black/40 opacity-0 transition group-hover:flex group-hover:opacity-100">
+                    <p className="text-sm font-semibold text-white">
+                      View Post
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
-      </div>
+      </main>
+
+      {/* Post Modal */}
+      {selectedPost && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm"
+          onClick={() => setSelectedPost(null)}
+        >
+          <div
+            className="relative w-full max-w-140 overflow-hidden rounded-xl border border-neutral-800 bg-black shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar user={profile} size={34} />
+                <p className="truncate text-sm font-semibold">
+                  {profile.username}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {isOwnProfile && (
+                  <button
+                    onClick={() => setShowDeletePostConfirm(true)}
+                    className="rounded-full p-2 text-neutral-300 transition hover:bg-neutral-900 hover:text-red-500"
+                    title="Delete post"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setSelectedPost(null)}
+                  className="rounded-full p-2 transition hover:bg-neutral-900"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-[72vh] overflow-y-auto">
+              {(selectedPost.image ||
+                selectedPost.imageUrl ||
+                selectedPost.media ||
+                selectedPost.photo ||
+                selectedPost.fileUrl) && (
+                <img
+                  src={
+                    selectedPost.image ||
+                    selectedPost.imageUrl ||
+                    selectedPost.media ||
+                    selectedPost.photo ||
+                    selectedPost.fileUrl
+                  }
+                  alt="Post"
+                  className="h-auto w-full object-cover"
+                />
+              )}
+
+              <div className="px-4 py-3">
+                <p className="whitespace-pre-line text-sm text-neutral-200">
+                  {selectedPost.caption || selectedPost.content || "Post"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={showDeletePostConfirm}
+        title="Delete Post?"
+        message="This post will be removed permanently."
+        confirmText="Delete"
+        danger
+        onCancel={() => setShowDeletePostConfirm(false)}
+        onConfirm={() => {
+          setShowDeletePostConfirm(false);
+          void handleDeleteOwnPost();
+        }}
+      />
     </div>
   );
 }

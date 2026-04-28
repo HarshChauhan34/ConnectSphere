@@ -3,22 +3,27 @@ import toast from "react-hot-toast";
 import { Camera, HomeIcon, Loader2, PenLine } from "lucide-react";
 import CreatePost from "../components/CreatePost";
 import PostCard from "../components/PostCard";
-import { getFeedPosts } from "../services/postService";
+import { getExplorePosts } from "../services/postService";
+import { useAuth } from "../context/useAuth";
 
 function Home() {
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchFeed = useCallback(async () => {
     try {
-      const res = await getFeedPosts();
-      setPosts(res.data.posts);
+      const res = await getExplorePosts();
+      const filteredPosts = (res.data.posts || []).filter(
+        (post) => post.user?._id !== user?._id
+      );
+      setPosts(filteredPosts);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to load feed");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,7 +49,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
+      <div className="mx-auto min-h-screen max-w-157.5 border-x border-neutral-800 bg-black pb-24">
         {/* Instagram Style Header */}
         <div className="sticky top-14 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
           <div className="flex h-14 items-center justify-between px-4">
@@ -75,14 +80,14 @@ function Home() {
 
         {/* Feed */}
         {loading ? (
-          <div className="flex min-h-[350px] items-center justify-center">
+          <div className="flex min-h-87.5 items-center justify-center">
             <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
               <Loader2 size={22} className="animate-spin" />
               Loading posts...
             </div>
           </div>
         ) : posts.length === 0 ? (
-          <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+          <div className="flex min-h-107.5 items-center justify-center px-6 text-center">
             <div>
               <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
                 <PenLine size={34} className="text-neutral-400" />
@@ -103,6 +108,7 @@ function Home() {
                   post={post}
                   onPostDeleted={handlePostDeleted}
                   onPostUpdated={handlePostUpdated}
+                  showFollowAction
                 />
               </div>
             ))}

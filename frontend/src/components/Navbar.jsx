@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { Bell, Compass, Home, LogOut, MessageCircle, Search } from "lucide-react";
+import {
+  Bell,
+  Compass,
+  Home,
+  LogOut,
+  MessageCircle,
+  Search,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/useAuth";
 import { useSocket } from "../context/useSocket";
 import Avatar from "./Avatar";
+import ConfirmDialog from "./ConfirmDialog";
 import { getNotifications } from "../services/notificationService";
 import { getUnreadMessagesCount } from "../services/messageService";
 
@@ -23,17 +31,19 @@ function Navbar() {
   const { liveNotifications, subscribeToMessages } = useSocket();
   const navigate = useNavigate();
   const location = useLocation();
+  const isProfileRoute = location.pathname.startsWith("/profile/");
 
   const [unreadServerNotifications, setUnreadServerNotifications] = useState(
-    []
+    [],
   );
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const fetchUnreadNotifications = useCallback(async () => {
     try {
       const res = await getNotifications();
       const unread = (res.data.notifications || []).filter(
-        (notification) => !notification.isRead
+        (notification) => !notification.isRead,
       );
       setUnreadServerNotifications(unread);
     } catch {
@@ -109,9 +119,6 @@ function Navbar() {
     : unreadMessages;
 
   const handleLogout = () => {
-    const confirmLogout = window.confirm("Are you sure you want to logout?");
-    if (!confirmLogout) return;
-
     setUnreadMessages(0);
     setUnreadServerNotifications([]);
     logout();
@@ -132,7 +139,7 @@ function Navbar() {
   return (
     <>
       {/* Desktop Instagram Sidebar */}
-      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-[245px] border-r border-neutral-800 bg-black px-3 py-6 text-white lg:block">
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-61.25 border-r border-neutral-800 bg-black px-3 py-6 text-white lg:block">
         <Link to="/" className="mb-9 block px-3">
           <h1 className="text-2xl font-semibold tracking-tight">
             ConnectSphere
@@ -178,7 +185,7 @@ function Navbar() {
         </nav>
 
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="absolute bottom-6 left-3 right-3 flex items-center gap-4 rounded-lg px-3 py-3 text-base text-neutral-200 transition hover:bg-neutral-900 hover:text-white"
         >
           <LogOut size={26} />
@@ -188,7 +195,7 @@ function Navbar() {
 
       {/* Tablet Top Bar */}
       <header className="sticky top-0 z-50 hidden border-b border-neutral-800 bg-black/90 text-white backdrop-blur-xl md:block lg:hidden">
-        <div className="mx-auto flex h-16 max-w-[975px] items-center justify-between px-5">
+        <div className="mx-auto flex h-16 max-w-243.75 items-center justify-between px-5">
           <Link to="/" className="text-xl font-semibold">
             ConnectSphere
           </Link>
@@ -225,7 +232,7 @@ function Navbar() {
             </NavLink>
 
             <button
-              onClick={handleLogout}
+              onClick={() => setShowLogoutConfirm(true)}
               className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-300 transition hover:bg-neutral-900 hover:text-white"
               title="Logout"
             >
@@ -235,35 +242,45 @@ function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Top Header */}
-      <header className="sticky top-0 z-50 border-b border-neutral-800 bg-black/90 text-white backdrop-blur-xl md:hidden">
-        <div className="flex h-14 items-center justify-between px-4">
-          <Link to="/" className="text-xl font-semibold">
-            ConnectSphere
-          </Link>
+      {/* Mobile Top Header - Instagram Style */}
+<header className="sticky top-0 z-50 border-b border-neutral-800 bg-black/95 text-white backdrop-blur-xl md:hidden">
+  <div className="flex h-14 items-center justify-between px-4">
+    {/* Logo */}
+    <Link
+      to="/"
+      className="font-serif text-[26px] font-semibold tracking-tight text-white"
+    >
+      ConnectSphere
+    </Link>
 
-          <div className="flex items-center gap-4">
-            <NavLink to="/notifications" className="relative">
-              <Bell size={24} />
-              <CountBadge count={unreadCount} />
-            </NavLink>
+    {/* Right Icons */}
+    <div className="flex items-center gap-5">
+      <NavLink
+        to="/notifications"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full transition active:scale-95"
+      >
+        <Bell size={25} strokeWidth={2.2} />
+        <CountBadge count={unreadCount} />
+      </NavLink>
 
-            <button onClick={handleLogout} title="Logout">
-              <LogOut size={22} />
-            </button>
-          </div>
-        </div>
-      </header>
+      {isProfileRoute && (
+        <button
+          onClick={() => setShowLogoutConfirm(true)}
+          title="Logout"
+          className="flex h-9 w-9 items-center justify-center rounded-full transition active:scale-95"
+        >
+          <LogOut size={24} strokeWidth={2.2} />
+        </button>
+      )}
+    </div>
+  </div>
+</header>
 
-        {/* Mobile Bottom Menu */}
+      {/* Mobile Bottom Menu */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-800 bg-black/95 text-white backdrop-blur-xl md:hidden">
         <div className="grid h-14 grid-cols-5">
           <NavLink to="/" className={mobileNavClass}>
             <Home size={25} />
-          </NavLink>
-
-          <NavLink to="/search" className={mobileNavClass}>
-            <Search size={25} />
           </NavLink>
 
           <NavLink to="/explore" className={mobileNavClass}>
@@ -277,11 +294,28 @@ function Navbar() {
             </div>
           </NavLink>
 
+          <NavLink to="/search" className={mobileNavClass}>
+            <Search size={25} />
+          </NavLink>
+
           <NavLink to={`/profile/${user?._id}`} className={mobileNavClass}>
             <Avatar user={user} size={28} />
           </NavLink>
         </div>
       </nav>
+
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        title="Logout?"
+        message="Are you sure you want to logout from your account?"
+        confirmText="Logout"
+        danger
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          handleLogout();
+        }}
+      />
     </>
   );
 }

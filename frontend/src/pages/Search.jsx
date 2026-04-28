@@ -3,8 +3,10 @@ import { Search as SearchIcon, Loader2, UserRoundSearch } from "lucide-react";
 import toast from "react-hot-toast";
 import UserCard from "../components/UserCard";
 import { getAllUsers } from "../services/userService";
+import { useAuth } from "../context/useAuth";
 
 function Search() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,9 +31,42 @@ function Search() {
     return () => clearTimeout(timer);
   }, [fetchUsers]);
 
+  const handleFollowChange = (personId, isFollowing) => {
+    setUsers((prev) =>
+      prev.map((person) => {
+        if (person._id !== personId) return person;
+
+        const followers = person.followers || [];
+        const hasCurrentUser = followers.some((follower) => {
+          const followerId = follower?._id || follower;
+          return followerId === user?._id;
+        });
+
+        if (isFollowing && !hasCurrentUser) {
+          return {
+            ...person,
+            followers: [...followers, user?._id],
+          };
+        }
+
+        if (!isFollowing && hasCurrentUser) {
+          return {
+            ...person,
+            followers: followers.filter((follower) => {
+              const followerId = follower?._id || follower;
+              return followerId !== user?._id;
+            }),
+          };
+        }
+
+        return person;
+      })
+    );
+  };
+
   return (
     <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
-      <div className="mx-auto flex h-full max-w-[630px] flex-col border-x border-neutral-800 bg-black">
+      <div className="mx-auto flex h-full max-w-157.5 flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
           <div className="flex h-14 items-center gap-3 px-4">
@@ -62,14 +97,14 @@ function Search() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
           {loading ? (
-            <div className="flex min-h-[350px] items-center justify-center">
+            <div className="flex min-h-87.5 items-center justify-center">
               <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
                 <Loader2 size={22} className="animate-spin" />
                 Searching...
               </div>
             </div>
           ) : users.length === 0 ? (
-            <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+            <div className="flex min-h-107.5 items-center justify-center px-6 text-center">
               <div>
                 <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
                   <UserRoundSearch size={34} className="text-neutral-400" />
@@ -89,7 +124,7 @@ function Search() {
                   key={person._id}
                   className="border-b border-neutral-800 p-3 transition hover:bg-neutral-950"
                 >
-                  <UserCard person={person} />
+                  <UserCard person={person} onFollowChange={handleFollowChange} />
                 </div>
               ))}
             </div>

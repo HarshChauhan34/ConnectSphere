@@ -43,8 +43,8 @@ function Login() {
       <div className="grid w-full max-w-5xl items-center gap-10 lg:grid-cols-2">
         {/* Left Instagram Style Preview */}
         <div className="hidden lg:flex justify-center">
-          <div className="relative h-[560px] w-[360px] rounded-[2.5rem] border border-neutral-800 bg-neutral-950 p-4 shadow-2xl">
-            <div className="h-full overflow-hidden rounded-[2rem] border border-neutral-800 bg-black">
+          <div className="relative h-140 w-90 rounded-[2.5rem] border border-neutral-800 bg-neutral-950 p-4 shadow-2xl">
+            <div className="h-full overflow-hidden rounded-4xl border border-neutral-800 bg-black">
               <div className="border-b border-neutral-800 px-4 py-3">
                 <h2 className="text-xl font-semibold">ConnectSphere</h2>
               </div>
@@ -53,8 +53,8 @@ function Login() {
                 <div className="mb-5 flex gap-4">
                   {[1, 2, 3, 4].map((item) => (
                     <div key={item} className="text-center">
-                      <div className="h-14 w-14 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
-                        <div className="h-full w-full rounded-full bg-black p-[2px]">
+                      <div className="h-14 w-14 rounded-full bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
+                        <div className="h-full w-full rounded-full bg-black p-0.5">
                           <div className="h-full w-full rounded-full bg-neutral-800" />
                         </div>
                       </div>
@@ -66,8 +66,8 @@ function Login() {
                   {[1, 2].map((item) => (
                     <div key={item} className="border-b border-neutral-800 pb-5">
                       <div className="mb-3 flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 p-[2px]">
-                          <div className="h-full w-full rounded-full bg-black p-[2px]">
+                        <div className="h-9 w-9 rounded-full bg-linear-to-tr from-yellow-400 via-pink-500 to-purple-600 p-0.5">
+                          <div className="h-full w-full rounded-full bg-black p-0.5">
                             <div className="h-full w-full rounded-full bg-neutral-800" />
                           </div>
                         </div>
@@ -90,7 +90,7 @@ function Login() {
         </div>
 
         {/* Login Box */}
-        <div className="mx-auto w-full max-w-[350px]">
+        <div className="mx-auto w-full max-w-87.5">
           <div className="border border-neutral-800 bg-black px-10 py-10">
             <h1 className="mb-8 text-center text-3xl font-semibold tracking-tight">
               ConnectSphere

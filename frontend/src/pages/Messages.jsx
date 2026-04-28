@@ -38,6 +38,15 @@ function Messages() {
   const [chatUser, setChatUser] = useState(null);
 
   const messagesEndRef = useRef(null);
+  const followingIds = useMemo(() => {
+    return new Set(
+      (user?.following || [])
+        .map((followId) =>
+          typeof followId === "string" ? followId : followId?._id
+        )
+        .filter(Boolean)
+    );
+  }, [user?.following]);
 
   const activeConversation = useMemo(
     () =>
@@ -48,12 +57,16 @@ function Messages() {
   );
 
   const activeUser = chatUser || activeConversation?.otherUser || null;
+  const canChatWithActiveUser = userId ? followingIds.has(userId) : false;
 
   const fetchConversations = useCallback(async () => {
     try {
       setConversationsLoading(true);
       const res = await getConversations();
-      setConversations(res.data.conversations || []);
+      const filteredConversations = (res.data.conversations || []).filter(
+        (conversation) => followingIds.has(conversation.otherUser?._id)
+      );
+      setConversations(filteredConversations);
     } catch (error) {
       toast.error(
         error.response?.data?.message || "Failed to load conversations"
@@ -61,12 +74,19 @@ function Messages() {
     } finally {
       setConversationsLoading(false);
     }
-  }, []);
+  }, [followingIds]);
 
   const fetchMessages = useCallback(async () => {
     if (!userId) {
       setMessages([]);
       setChatUser(null);
+      return;
+    }
+    if (!followingIds.has(userId)) {
+      setMessages([]);
+      setChatUser(null);
+      toast.error("You can only chat with users you follow");
+      navigate("/messages");
       return;
     }
 
@@ -80,7 +100,7 @@ function Messages() {
     } finally {
       setMessagesLoading(false);
     }
-  }, [userId]);
+  }, [followingIds, navigate, userId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -107,7 +127,10 @@ function Messages() {
       try {
         const res = await getAllUsers(search);
         if (!isCancelled) {
-          setSearchUsers(res.data.users || []);
+          const filteredUsers = (res.data.users || []).filter((person) =>
+            followingIds.has(person?._id)
+          );
+          setSearchUsers(filteredUsers);
         }
       } catch {
         if (!isCancelled) setSearchUsers([]);
@@ -118,7 +141,7 @@ function Messages() {
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [search]);
+  }, [followingIds, search]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -145,6 +168,10 @@ function Messages() {
     event.preventDefault();
 
     if (!userId || !messageText.trim()) return;
+    if (!followingIds.has(userId)) {
+      toast.error("You can only chat with users you follow");
+      return;
+    }
 
     try {
       setSending(true);
@@ -163,8 +190,8 @@ function Messages() {
   const showSearchResults = search.trim().length > 0;
 
   return (
-    <div className="h-full min-h-0 overflow-hidden bg-[#000] text-white">
-      <div className="mx-auto grid h-full max-w-[980px] overflow-hidden border-x border-neutral-800 bg-black md:grid-cols-[360px_1fr]">
+    <div className="h-full min-h-0 overflow-hidden bg-black text-white">
+      <div className="mx-auto grid h-full max-w-245 overflow-hidden border-x border-neutral-800 bg-black md:grid-cols-[360px_1fr]">
         {/* Sidebar */}
         <aside
           className={`flex h-full min-h-0 flex-col border-r border-neutral-800 bg-black ${
@@ -173,7 +200,7 @@ function Messages() {
         >
           <div className="shrink-0 border-b border-neutral-800 px-5 py-5">
             <div className="flex items-center justify-between">
-              <h1 className="max-w-[220px] truncate text-xl font-bold">
+              <h1 className="max-w-55 truncate text-xl font-bold">
                 {user?.username || "Messages"}
               </h1>
 
@@ -226,7 +253,7 @@ function Messages() {
                 ))
               ) : (
                 <div className="px-5 py-12 text-center text-sm text-neutral-400">
-                  No users found.
+                  No followed users found.
                 </div>
               )
             ) : conversationsLoading ? (
@@ -311,7 +338,7 @@ function Messages() {
           ) : (
             <div className="flex h-full min-h-0 flex-col overflow-hidden">
               {/* Chat Header */}
-              <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-neutral-800 px-4">
+              <header className="flex h-18 shrink-0 items-center justify-between border-b border-neutral-800 px-4">
                 <div className="flex min-w-0 items-center gap-3">
                   <button
                     onClick={() => navigate("/messages")}
@@ -332,14 +359,27 @@ function Messages() {
                   </div>
                 </div>
 
-                <button className="rounded-full p-2 transition hover:bg-neutral-900">
+                <button
+                  onClick={() => {
+                    if (!activeUser?._id) return;
+                    navigate(`/profile/${activeUser._id}`);
+                  }}
+                  disabled={!activeUser?._id}
+                  className="rounded-full p-2 transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   <Info size={22} />
                 </button>
               </header>
 
               {/* Messages */}
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-                {messagesLoading ? (
+                {!canChatWithActiveUser ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <p className="text-sm text-neutral-400">
+                      You can only chat with users you follow.
+                    </p>
+                  </div>
+                ) : messagesLoading ? (
                   <div className="flex h-full items-center justify-center">
                     <Loader2 className="animate-spin text-neutral-400" size={24} />
                   </div>
@@ -370,7 +410,7 @@ function Messages() {
                           {!isMine && <Avatar user={message.sender} size={26} />}
 
                           <div
-                            className={`max-w-[75%] rounded-[24px] px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                            className={`max-w-[75%] rounded-3xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
                               isMine
                                 ? "rounded-br-md bg-[#3797f0] text-white"
                                 : "rounded-bl-md bg-[#262626] text-white"
@@ -405,6 +445,7 @@ function Messages() {
                   />
 
                   <button
+                    type="submit"
                     disabled={sending || !messageText.trim()}
                     className="font-semibold text-[#0095f6] transition disabled:cursor-not-allowed disabled:opacity-40"
                   >

@@ -16,8 +16,8 @@ function MainLayout() {
       <main
         className={`mx-auto w-full border-x border-neutral-800 bg-black ${
           isMessagesRoute
-            ? "h-[calc(100dvh-7rem)] max-w-[980px] overflow-hidden md:h-[calc(100dvh-4rem)] lg:h-dvh"
-            : "min-h-screen max-w-[975px] pb-24 md:pb-6"
+            ? "h-[calc(100dvh-7rem)] max-w-245 overflow-hidden md:h-[calc(100dvh-4rem)] lg:h-dvh"
+            : "min-h-screen max-w-243.75 pb-24 md:pb-6"
         }`}
       >
         <Outlet />
