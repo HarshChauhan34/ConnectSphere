@@ -75,10 +75,10 @@ function Notifications() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
+    <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
+      <div className="mx-auto flex h-full max-w-[630px] flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
-        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+        <div className="fixed left-1/2 top-14 z-40 w-full max-w-[630px] -translate-x-1/2 border-x border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
           <div className="flex h-14 items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <Bell size={24} />
@@ -96,72 +96,74 @@ function Notifications() {
         </div>
 
         {/* Content */}
-        {loading ? (
-          <div className="flex min-h-[350px] items-center justify-center">
-            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
-              <Loader2 size={22} className="animate-spin" />
-              Loading notifications...
+        <div className="flex-1 overflow-y-auto pt-14 pb-24 md:pb-6">
+          {loading ? (
+            <div className="flex min-h-[350px] items-center justify-center">
+              <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+                <Loader2 size={22} className="animate-spin" />
+                Loading notifications...
+              </div>
             </div>
-          </div>
-        ) : allNotifications.length === 0 ? (
-          <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+          ) : allNotifications.length === 0 ? (
+            <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+              <div>
+                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                  <Bell size={34} className="text-neutral-400" />
+                </div>
+
+                <h2 className="text-xl font-bold text-white">
+                  No notifications yet
+                </h2>
+
+                <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
+                  Your activity notifications will show here.
+                </p>
+              </div>
+            </div>
+          ) : (
             <div>
-              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
-                <Bell size={34} className="text-neutral-400" />
-              </div>
-
-              <h2 className="text-xl font-bold text-white">
-                No notifications yet
-              </h2>
-
-              <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
-                Your activity notifications will show here.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            {allNotifications.map((notification) => (
-              <div
-                key={notification._id}
-                className={`group flex items-center gap-3 border-b border-neutral-800 px-4 py-3 transition hover:bg-neutral-950 ${
-                  !notification.isRead ? "bg-neutral-950" : ""
-                }`}
-              >
-                <div className="relative shrink-0">
-                  <Avatar user={notification.sender} size={48} />
-
-                  <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-black">
-                    {getIcon(notification.type)}
-                  </div>
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm leading-5 text-white">
-                    <span className="font-semibold">
-                      {notification.sender?.username}
-                    </span>{" "}
-                    {notification.message}
-                  </p>
-
-                  {!notification.isRead && (
-                    <p className="mt-1 text-xs font-semibold text-[#0095f6]">
-                      New
-                    </p>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => handleDelete(notification._id)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-900 hover:text-red-500"
-                  title="Delete notification"
+              {allNotifications.map((notification) => (
+                <div
+                  key={notification._id}
+                  className={`group flex items-center gap-3 border-b border-neutral-800 px-4 py-3 transition hover:bg-neutral-950 ${
+                    !notification.isRead ? "bg-neutral-950" : ""
+                  }`}
                 >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                  <div className="relative shrink-0">
+                    <Avatar user={notification.sender} size={48} />
+
+                    <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-black bg-black">
+                      {getIcon(notification.type)}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm leading-5 text-white">
+                      <span className="font-semibold">
+                        {notification.sender?.username}
+                      </span>{" "}
+                      {notification.message}
+                    </p>
+
+                    {!notification.isRead && (
+                      <p className="mt-1 text-xs font-semibold text-[#0095f6]">
+                        New
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => handleDelete(notification._id)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-neutral-500 transition hover:bg-neutral-900 hover:text-red-500"
+                    title="Delete notification"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

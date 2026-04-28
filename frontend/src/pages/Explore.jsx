@@ -65,8 +65,8 @@ function Explore() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[975px] border-x border-neutral-800 bg-black pb-24">
+    <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
+      <div className="mx-auto flex h-full max-w-[975px] flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
           <div className="flex h-14 items-center gap-3 px-4">
@@ -121,46 +121,48 @@ function Explore() {
         </div>
 
         {/* Content */}
-        {loading ? (
-          <div className="flex min-h-[350px] items-center justify-center">
-            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
-              <Loader2 size={22} className="animate-spin" />
-              Loading explore...
+        <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
+          {loading ? (
+            <div className="flex min-h-[350px] items-center justify-center">
+              <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+                <Loader2 size={22} className="animate-spin" />
+                Loading explore...
+              </div>
             </div>
-          </div>
-        ) : activeTab === "users" ? (
-          users.length === 0 ? (
-            <EmptyState message="No users found." />
+          ) : activeTab === "users" ? (
+            users.length === 0 ? (
+              <EmptyState message="No users found." />
+            ) : (
+              <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3">
+                {users.map((person) => (
+                  <div
+                    key={person._id}
+                    className="border-b border-neutral-800 p-3 sm:border-r"
+                  >
+                    <UserCard
+                      person={person}
+                      onFollowChange={handleFollowChange}
+                    />
+                  </div>
+                ))}
+              </div>
+            )
+          ) : posts.length === 0 ? (
+            <EmptyState message="No posts found." />
           ) : (
-            <div className="grid gap-0 sm:grid-cols-2 lg:grid-cols-3">
-              {users.map((person) => (
-                <div
-                  key={person._id}
-                  className="border-b border-neutral-800 p-3 sm:border-r"
-                >
-                  <UserCard
-                    person={person}
-                    onFollowChange={handleFollowChange}
+            <div className="mx-auto max-w-[630px]">
+              {posts.map((post) => (
+                <div key={post._id} className="border-b border-neutral-800">
+                  <PostCard
+                    post={post}
+                    onPostDeleted={handlePostDeleted}
+                    onPostUpdated={handlePostUpdated}
                   />
                 </div>
               ))}
             </div>
-          )
-        ) : posts.length === 0 ? (
-          <EmptyState message="No posts found." />
-        ) : (
-          <div className="mx-auto max-w-[630px]">
-            {posts.map((post) => (
-              <div key={post._id} className="border-b border-neutral-800">
-                <PostCard
-                  post={post}
-                  onPostDeleted={handlePostDeleted}
-                  onPostUpdated={handlePostUpdated}
-                />
-              </div>
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

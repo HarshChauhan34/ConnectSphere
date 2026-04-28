@@ -30,15 +30,15 @@ function Search() {
   }, [fetchUsers]);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
+    <div className="h-[calc(100dvh-7rem)] overflow-hidden bg-black text-white md:h-[calc(100dvh-4rem)] lg:h-dvh">
+      <div className="mx-auto flex h-full max-w-[630px] flex-col border-x border-neutral-800 bg-black">
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
           <div className="flex h-14 items-center gap-3 px-4">
             <SearchIcon size={24} />
             <h1 className="text-xl font-bold tracking-tight">Search</h1>
           </div>
-
+    
           {/* Search Bar */}
           <div className="px-4 pb-3">
             <div className="relative">
@@ -60,39 +60,41 @@ function Search() {
         </div>
 
         {/* Content */}
-        {loading ? (
-          <div className="flex min-h-[350px] items-center justify-center">
-            <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
-              <Loader2 size={22} className="animate-spin" />
-              Searching...
+        <div className="flex-1 overflow-y-auto pb-24 md:pb-6">
+          {loading ? (
+            <div className="flex min-h-[350px] items-center justify-center">
+              <div className="flex items-center gap-3 text-sm font-medium text-neutral-400">
+                <Loader2 size={22} className="animate-spin" />
+                Searching...
+              </div>
             </div>
-          </div>
-        ) : users.length === 0 ? (
-          <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+          ) : users.length === 0 ? (
+            <div className="flex min-h-[430px] items-center justify-center px-6 text-center">
+              <div>
+                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
+                  <UserRoundSearch size={34} className="text-neutral-400" />
+                </div>
+
+                <h2 className="text-xl font-bold text-white">No users found</h2>
+
+                <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
+                  Try searching by name or username.
+                </p>
+              </div>
+            </div>
+          ) : (
             <div>
-              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full border border-neutral-700">
-                <UserRoundSearch size={34} className="text-neutral-400" />
-              </div>
-
-              <h2 className="text-xl font-bold text-white">No users found</h2>
-
-              <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-neutral-400">
-                Try searching by name or username.
-              </p>
+              {users.map((person) => (
+                <div
+                  key={person._id}
+                  className="border-b border-neutral-800 p-3 transition hover:bg-neutral-950"
+                >
+                  <UserCard person={person} />
+                </div>
+              ))}
             </div>
-          </div>
-        ) : (
-          <div>
-            {users.map((person) => (
-              <div
-                key={person._id}
-                className="border-b border-neutral-800 p-3 transition hover:bg-neutral-950"
-              >
-                <UserCard person={person} />
-              </div>
-            ))}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

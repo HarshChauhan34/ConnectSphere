@@ -46,7 +46,7 @@ function Home() {
     <div className="min-h-screen bg-black text-white">
       <div className="mx-auto min-h-screen max-w-[630px] border-x border-neutral-800 bg-black pb-24">
         {/* Instagram Style Header */}
-        <div className="sticky top-0 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl">
+        <div className="sticky top-14 z-40 border-b border-neutral-800 bg-black/90 backdrop-blur-xl md:top-16 lg:top-0">
           <div className="flex h-14 items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <HomeIcon size={24} />
