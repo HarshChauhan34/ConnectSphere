@@ -196,6 +196,61 @@ export const likeUnlikePost = async (req, res) => {
   }
 };
 
+export const updatePost = async (req, res) => {
+  try {
+    const { content } = req.body;
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: "Post not found",
+      });
+    }
+
+    if (post.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: "You can edit only your own post",
+      });
+    }
+
+    const trimmedContent = content?.trim();
+
+    if (!trimmedContent) {
+      return res.status(400).json({
+        success: false,
+        message: "Post content is required",
+      });
+    }
+
+    if (trimmedContent.length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: "Post content cannot be more than 1000 characters",
+      });
+    }
+
+    post.content = trimmedContent;
+    await post.save();
+
+    const updatedPost = await Post.findById(post._id)
+      .populate("user", "name username avatar")
+      .populate("likes", "name username avatar");
+
+    res.json({
+      success: true,
+      message: "Post updated successfully",
+      post: updatedPost,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const deletePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);

@@ -10,6 +10,7 @@ import {
   Grid3X3,
   MoreHorizontal,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import {
@@ -17,7 +18,7 @@ import {
   getUserProfile,
   updateProfile,
 } from "../services/userService";
-import { deletePost, getUserPosts } from "../services/postService";
+import { deletePost, getUserPosts, updatePost } from "../services/postService";
 import Avatar from "../components/Avatar";
 import ConfirmDialog from "../components/ConfirmDialog";
 
@@ -33,6 +34,9 @@ function Profile() {
   const [preview, setPreview] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const [showDeletePostConfirm, setShowDeletePostConfirm] = useState(false);
+  const [postEditMode, setPostEditMode] = useState(false);
+  const [postEditContent, setPostEditContent] = useState("");
+  const [postEditLoading, setPostEditLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -139,6 +143,8 @@ function Profile() {
 
   const openPost = (post) => {
     setSelectedPost(post);
+    setPostEditMode(false);
+    setPostEditContent(post.content || post.caption || "");
   };
 
   const handleDeleteOwnPost = async () => {
@@ -148,9 +154,42 @@ function Profile() {
       await deletePost(selectedPost._id);
       setPosts((prev) => prev.filter((post) => post._id !== selectedPost._id));
       setSelectedPost(null);
+      setPostEditMode(false);
+      setPostEditContent("");
       toast.success("Post deleted");
     } catch (error) {
       toast.error(error.response?.data?.message || "Delete failed");
+    }
+  };
+
+  const handleUpdateOwnPost = async (e) => {
+    e.preventDefault();
+
+    if (!selectedPost?._id) return;
+
+    const content = postEditContent.trim();
+
+    if (!content) {
+      toast.error("Post content is required");
+      return;
+    }
+
+    try {
+      setPostEditLoading(true);
+      const res = await updatePost(selectedPost._id, { content });
+      const updatedPost = res.data.post;
+
+      setPosts((prev) =>
+        prev.map((post) => (post._id === updatedPost._id ? updatedPost : post)),
+      );
+      setSelectedPost(updatedPost);
+      setPostEditContent(updatedPost.content || "");
+      setPostEditMode(false);
+      toast.success("Post updated");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Update failed");
+    } finally {
+      setPostEditLoading(false);
     }
   };
 
@@ -523,7 +562,10 @@ function Profile() {
       {selectedPost && (
         <div
           className="fixed inset-0 z-70 flex items-center justify-center bg-black/80 p-3 backdrop-blur-sm"
-          onClick={() => setSelectedPost(null)}
+          onClick={() => {
+            setSelectedPost(null);
+            setPostEditMode(false);
+          }}
         >
           <div
             className="relative w-full max-w-140 overflow-hidden rounded-xl border border-neutral-800 bg-black shadow-2xl"
@@ -539,17 +581,35 @@ function Profile() {
 
               <div className="flex items-center gap-1">
                 {isOwnProfile && (
-                  <button
-                    onClick={() => setShowDeletePostConfirm(true)}
-                    className="rounded-full p-2 text-neutral-300 transition hover:bg-neutral-900 hover:text-red-500"
-                    title="Delete post"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setPostEditMode((prev) => !prev);
+                        setPostEditContent(
+                          selectedPost.content || selectedPost.caption || "",
+                        );
+                      }}
+                      className="rounded-full p-2 text-neutral-300 transition hover:bg-neutral-900 hover:text-white"
+                      title="Edit post"
+                    >
+                      <Pencil size={18} />
+                    </button>
+
+                    <button
+                      onClick={() => setShowDeletePostConfirm(true)}
+                      className="rounded-full p-2 text-neutral-300 transition hover:bg-neutral-900 hover:text-red-500"
+                      title="Delete post"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </>
                 )}
 
                 <button
-                  onClick={() => setSelectedPost(null)}
+                  onClick={() => {
+                    setSelectedPost(null);
+                    setPostEditMode(false);
+                  }}
                   className="rounded-full p-2 transition hover:bg-neutral-900"
                 >
                   <X size={18} />
@@ -577,9 +637,64 @@ function Profile() {
               )}
 
               <div className="px-4 py-3">
-                <p className="whitespace-pre-line text-sm text-neutral-200">
-                  {selectedPost.caption || selectedPost.content || "Post"}
-                </p>
+                {postEditMode ? (
+                  <form onSubmit={handleUpdateOwnPost}>
+                    <textarea
+                      value={postEditContent}
+                      onChange={(e) => setPostEditContent(e.target.value)}
+                      maxLength={1000}
+                      rows="5"
+                      className="min-h-32 w-full resize-none rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm leading-5 text-white outline-none placeholder:text-neutral-500 focus:border-neutral-400"
+                      placeholder="Edit your post"
+                    />
+
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <p className="text-xs text-neutral-500">
+                        {postEditContent.length}/1000
+                      </p>
+
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPostEditMode(false);
+                            setPostEditContent(
+                              selectedPost.content ||
+                                selectedPost.caption ||
+                                "",
+                            );
+                          }}
+                          className="rounded-lg bg-[#363636] px-4 py-2 text-sm font-semibold transition hover:bg-[#4a4a4a]"
+                        >
+                          Cancel
+                        </button>
+
+                        <button
+                          disabled={
+                            postEditLoading || !postEditContent.trim()
+                          }
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#0095f6] px-4 py-2 text-sm font-semibold transition hover:bg-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {postEditLoading ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              Saving
+                            </>
+                          ) : (
+                            <>
+                              <Save size={16} />
+                              Save
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <p className="whitespace-pre-line text-sm text-neutral-200">
+                    {selectedPost.caption || selectedPost.content || "Post"}
+                  </p>
+                )}
               </div>
             </div>
           </div>

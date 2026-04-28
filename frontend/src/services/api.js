@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const PROD_API_FALLBACK = "https://connectsphere-8g4j.onrender.com/api";
-const DEV_API_FALLBACK = "https://connectsphere-8g4j.onrender.com/api";
+const DEV_API_FALLBACK = "http://localhost:5000/api";
 const API_URL =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? PROD_API_FALLBACK : DEV_API_FALLBACK);
